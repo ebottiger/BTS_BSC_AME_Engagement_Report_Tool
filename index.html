@@ -728,27 +728,47 @@ const POD_DATE  =['Session 2 Date','Session 4 Date'];
 const POD_LABEL =['Pod Session One: Navigating Difficult Conversations','Pod Session Two: Flex My Style'];
 
 function computeFlags(cohorts,reportDate){
+  // Coaching session deadline indices in cohortDeadlines:
+  // dl[0]=Coach1, dl[1]=Pod1, dl[2]=Coach2, dl[3]=Pod2, dl[4]=Coach3, dl[5]=Coach4
+  // Coaching sessions map to deadline indices: Coach1=0, Coach2=2, Coach3=4, Coach4=5
+  const coachDeadlineIdx=[0,2,4,5];
   const flags=[];
   Object.entries(cohorts).forEach(([cohort,rows])=>{
     if(!cohort.toLowerCase().includes('ame'))return;
     const cohortNum=cohort.match(/Cohort\s*(\d+)/i)?.[1]||'?';
+    const dl=cohortDeadlines[cohort]||[];
     rows.forEach(row=>{
       const statuses=S_STATUS.map(k=>(row[k]||'').trim());
       const dates=S_DATE.map(k=>parseDate(row[k]));
+
+      // ── Session 1 unbooked ───────────────────────────────────────
       if(statuses[0]==='Unbooked'){
         if(!statuses.slice(1).some(s=>s==='Booked')){
+          // Rule 1: use cohort Start Date, 21-day threshold
           const startDate=parseDate(row['Start Date']);
-          const days=startDate?daysDiff(reportDate,startDate):999;
-          flags.push({name:cleanName(row['Coachee']),cohort:cohortNum,session:S_LABEL[0],sessionIdx:0,note:(days<7)?'BTS to send Reminder':'BSC to send Reminder',note2:''});
+          const daysSinceStart=startDate?daysDiff(reportDate,startDate):999;
+          const note=daysSinceStart<21?'BTS to send Reminder':'BSC to send Reminder';
+          flags.push({name:cleanName(row['Coachee']),cohort:cohortNum,session:S_LABEL[0],sessionIdx:0,note,note2:''});
         }
         return;
       }
+
+      // ── Sessions 2-4 (next coaching session unbooked) ────────────
       for(let i=0;i<3;i++){
         const curr=statuses[i],next=statuses[i+1];
         if((curr==='Completed'||curr==='Missed'||curr==='Awaiting Coach Input')&&next==='Unbooked'){
           if(!statuses.slice(i+2).some(s=>s==='Booked')){
-            const days=dates[i]?daysDiff(reportDate,dates[i]):999;
-            flags.push({name:cleanName(row['Coachee']),cohort:cohortNum,session:S_LABEL[i+1],sessionIdx:i+1,note:(days<7)?'BTS to send Reminder':'BSC to send Reminder',note2:''});
+            // Rule 2: 14-day threshold on last completed session date
+            // Only apply BTS rule if report date is within or before the booking window
+            const sessionDeadlineStr=dl[coachDeadlineIdx[i+1]]||'';
+            const sessionDeadline=parseDeadlineStr(sessionDeadlineStr,reportDate);
+            const withinWindow=!sessionDeadline||(reportDate<=sessionDeadline);
+            let note='BSC to send Reminder'; // default
+            if(withinWindow){
+              const daysSinceLastSession=dates[i]?daysDiff(reportDate,dates[i]):999;
+              note=daysSinceLastSession<14?'BTS to send Reminder':'BSC to send Reminder';
+            }
+            flags.push({name:cleanName(row['Coachee']),cohort:cohortNum,session:S_LABEL[i+1],sessionIdx:i+1,note,note2:''});
           }
           break;
         }
@@ -989,32 +1009,96 @@ async function generateReport(){
 
     // Convert AOA to worksheet XML and write directly into template zip
     // Template layout: sheet1=Coaching Overview, sheet2=Raw Data, sheet3=360 progress
-    function aoaToWorksheetXml(aoa){
+    // Yellow fill style index = 1 (defined in styles below)
+    // We embed a minimal styles.xml with a yellow fill for archive rows
+    const YELLOW_FILL_IDX=1;
+    function aoaToWorksheetXml(aoa, opts={}){
       const XMLNS='http://schemas.openxmlformats.org/spreadsheetml/2006/main';
       const XMLNS_R='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+      const yellowRows=new Set(opts.yellowRows||[]);  // 1-indexed row numbers
+      const mergeCells=opts.mergeCells||[];            // [{ref:'I3:M3'}, ...]
+      const colWidths=opts.colWidths||[];              // [{col:1-indexed, width:chars}, ...]
+
+      // Build cols XML for column widths
+      let colsXml='';
+      if(colWidths.length){
+        const sorted=[...colWidths].sort((a,b)=>a.col-b.col);
+        colsXml='<cols>'+sorted.map(cw=>
+          `<col min="${cw.col}" max="${cw.col}" width="${cw.width}" customWidth="1"/>`
+        ).join('')+'</cols>';
+      }
+
       let rows='';
       aoa.forEach((row,ri)=>{
+        const rowNum=ri+1;
+        const isYellow=yellowRows.has(rowNum);
         let cells='';
         row.forEach((val,ci)=>{
           if(val===null||val===undefined||val==='') return;
-          const addr=colLetter(ci+1)+(ri+1);
+          const addr=colLetter(ci+1)+rowNum;
+          const styleAttr=isYellow?` s="${YELLOW_FILL_IDX}"`:'';
           if(typeof val==='number'){
-            cells+=`<c r="${addr}"><v>${val}</v></c>`;
+            cells+=`<c r="${addr}"${styleAttr}><v>${val}</v></c>`;
           }else if(typeof val==='string'&&val.startsWith('=')){
             const escaped=val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-            cells+=`<c r="${addr}"><f>${escaped.slice(1)}</f></c>`;
+            cells+=`<c r="${addr}"${styleAttr}><f>${escaped.slice(1)}</f></c>`;
           }else{
             const escaped=String(val).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-            cells+=`<c r="${addr}" t="inlineStr"><is><t>${escaped}</t></is></c>`;
+            cells+=`<c r="${addr}"${styleAttr} t="inlineStr"><is><t>${escaped}</t></is></c>`;
           }
         });
-        if(cells) rows+=`<row r="${ri+1}">${cells}</row>`;
+        if(cells) rows+=`<row r="${rowNum}">${cells}</row>`;
       });
-      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="${XMLNS}" xmlns:r="${XMLNS_R}"><sheetData>${rows}</sheetData></worksheet>`;
+
+      // Build mergeCells XML
+      let mergeXml='';
+      if(mergeCells.length){
+        mergeXml=`<mergeCells count="${mergeCells.length}">`+
+          mergeCells.map(m=>`<mergeCell ref="${m}"/>`).join('')+
+          '</mergeCells>';
+      }
+
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="${XMLNS}" xmlns:r="${XMLNS_R}">${colsXml}<sheetData>${rows}</sheetData>${mergeXml}</worksheet>`;
     }
 
+    // ── Inject a minimal styles.xml with yellow fill for archive rows ─────
+    // styleIdx 0 = normal, styleIdx 1 = yellow fill
+    const STYLES_XML=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>
+  <fills count="3">
+    <fill><patternFill patternType="none"/></fill>
+    <fill><patternFill patternType="gray125"/></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFFFFF00"/></patternFill></fill>
+  </fills>
+  <borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+  <cellXfs count="2">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="0" fontId="0" fillId="2" borderId="0" xfId="0" applyFill="1"/>
+  </cellXfs>
+</styleSheet>`;
+    tmplZip.file('xl/styles.xml', STYLES_XML);
+
+    // ── Column widths for sheet1 (Overview) ─────────────────────────────────
+    // Cols A-G (coaching tables): narrow-medium
+    // Cols I-M (flag tables): wider for names/sessions
+    const coachColWidths=[
+      {col:1,width:22},{col:2,width:18},{col:3,width:14},{col:4,width:18},
+      {col:5,width:14},{col:6,width:16},{col:7,width:14},
+      {col:9,width:28},{col:10,width:8},{col:11,width:32},{col:12,width:22},{col:13,width:20}
+    ];
+
+    // ── Merge cells for section headers ─────────────────────────────────────
+    const coachFlagMerge=`I${coachResult.coachFlagMergeRow}:M${coachResult.coachFlagMergeRow}`;
+    const t360FlagMerge=`I${coachResult.t360FlagMergeRow}:L${coachResult.t360FlagMergeRow}`;
+
     // Write the three rebuilt sheets
-    tmplZip.file('xl/worksheets/sheet1.xml', aoaToWorksheetXml(coachResult.aoa));
+    tmplZip.file('xl/worksheets/sheet1.xml', aoaToWorksheetXml(coachResult.aoa, {
+      colWidths: coachColWidths,
+      yellowRows: coachResult.archiveRowNums,
+      mergeCells: [coachFlagMerge, t360FlagMerge]
+    }));
     tmplZip.file('xl/worksheets/sheet2.xml', aoaToWorksheetXml(rawAOA));
     tmplZip.file('xl/worksheets/sheet3.xml', aoaToWorksheetXml(t360Result.aoa));
 
@@ -1169,38 +1253,76 @@ function buildCoachAOA(active2026,rawRows){
     const dl=cohortDeadlines[cohort]||['by TBD','by TBD','by TBD','by TBD','by TBD','by TBD'];
     while(aoa.length<=r) aoa.push([]); aoa[r][0]=cohort; r++;
     while(aoa.length<=r) aoa.push([]);
-    aoa[r]=['',`Coach 1 (${dl[0]})`,`Pod 1 (${dl[1]})`,`Coach 2 (${dl[2]})`,`Pod 2 (${dl[3]})`,`Coach 3 (${dl[4]})`,`Coach 4 (${dl[5]})`];
+    aoa[r]=['Status',`Coach 1 (${dl[0]})`,`Pod 1 (${dl[1]})`,`Coach 2 (${dl[2]})`,`Pod 2 (${dl[3]})`,`Coach 3 (${dl[4]})`,`Coach 4 (${dl[5]})`];
     const tblStart=r+1;
     statOrder.forEach((stat,si)=>{
       r++;
       while(aoa.length<=r) aoa.push([]);
       aoa[r]=[stat,...sCols.map(sc=>`=COUNTIFS('Raw Data'!E1:E${rawRows},"${cohort}",'Raw Data'!${sc}1:${sc}${rawRows},"${stat}")`)]
     });
-    tables.push({sheetName:'Coaching Overview',name:nextTid(),ref:`A${tblStart}:G${tblStart+4}`,cols:['',`Coach 1 (${dl[0]})`,`Pod 1 (${dl[1]})`,`Coach 2 (${dl[2]})`,`Pod 2 (${dl[3]})`,`Coach 3 (${dl[4]})`,`Coach 4 (${dl[5]})`]});
+    tables.push({sheetName:'Coaching Overview',name:nextTid(),ref:`A${tblStart}:G${tblStart+4}`,cols:['Status',`Coach 1 (${dl[0]})`,`Pod 1 (${dl[1]})`,`Coach 2 (${dl[2]})`,`Pod 2 (${dl[3]})`,`Coach 3 (${dl[4]})`,`Coach 4 (${dl[5]})`]});
     r+=2;
   });
 
-  // Coaching Engagement Flag — start at current row pointer (after all cohort tables)
-  let fr=r;
-  while(aoa.length<=fr) aoa.push([]); aoa[fr][6]='Coaching Engagement Flag'; fr++;
-  while(aoa.length<=fr) aoa.push([]);
-  aoa[fr][6]='Name'; aoa[fr][7]='Cohort'; aoa[fr][8]='Session'; aoa[fr][9]='Action'; aoa[fr][10]='Note';
-  const flagStart=fr+1;
+  // Coaching Engagement Flag — cols I-M (indices 8-12), starting at row 3
+  // Fixed at row 3 (index 2) so it always aligns with top of sheet
+  const FLAG_COL=8; // col I
+  const coachFlagHeaderRow=2; // row 3 (0-indexed=2)
+  while(aoa.length<=coachFlagHeaderRow) aoa.push([]);
+  aoa[coachFlagHeaderRow][FLAG_COL]='Coaching Engagement Flag';
+  const coachFlagHdrRow=coachFlagHeaderRow+1;
+  while(aoa.length<=coachFlagHdrRow) aoa.push([]);
+  aoa[coachFlagHdrRow][FLAG_COL]='Name';
+  aoa[coachFlagHdrRow][FLAG_COL+1]='Cohort';
+  aoa[coachFlagHdrRow][FLAG_COL+2]='Session';
+  aoa[coachFlagHdrRow][FLAG_COL+3]='Action';
+  aoa[coachFlagHdrRow][FLAG_COL+4]='Note';
+  const flagStart=coachFlagHdrRow+1;
   const flagRows=computedFlags.length>0?computedFlags:[{name:'',cohort:'',session:'',note:'',note2:''}];
-  flagRows.forEach((f,i)=>{const row=fr+1+i; while(aoa.length<=row) aoa.push([]); aoa[row][6]=f.name; aoa[row][7]=parseInt(f.cohort||0); aoa[row][8]=f.session; aoa[row][9]=f.note; aoa[row][10]=f.note2||'';});
-  tables.push({sheetName:'Coaching Overview',name:nextTid(),ref:`G${flagStart}:K${flagStart+flagRows.length-1+1}`,cols:['Name','Cohort','Session','Status','Note']});
-  fr=flagStart+flagRows.length+2;
+  // Track which rows are archive-flagged for yellow highlighting
+  const archiveFlagNames=new Set((typeof computeArchiveFlags==='function'?computeArchiveFlags(parsedCohorts,new Date()):[] ).map(a=>a.name));
+  const archiveRowNums=[];
+  flagRows.forEach((f,i)=>{
+    const row=flagStart+i;
+    while(aoa.length<=row) aoa.push([]);
+    aoa[row][FLAG_COL]=f.name;
+    aoa[row][FLAG_COL+1]=parseInt(f.cohort||0);
+    aoa[row][FLAG_COL+2]=f.session;
+    aoa[row][FLAG_COL+3]=f.note;
+    aoa[row][FLAG_COL+4]=f.note2||'';
+    if(archiveFlagNames.has(f.name)) archiveRowNums.push(row+1); // 1-indexed for Excel
+  });
+  tables.push({sheetName:'Coaching Overview',name:nextTid(),
+    ref:`I${flagStart+1}:M${flagStart+flagRows.length+1}`,
+    cols:['Name','Cohort','Session','Action','Note']});
 
-  // 360 Engagement Flag
-  while(aoa.length<=fr) aoa.push([]); aoa[fr][6]='360 Engagement Flag'; fr++;
-  while(aoa.length<=fr) aoa.push([]);
-  aoa[fr][6]='Engagement Flag'; aoa[fr][7]='Cohort'; aoa[fr][8]='Response'; aoa[fr][9]='Notes';
-  const t360Start=fr+1;
+  // 360 Engagement Flag — cols I-L (indices 8-11), below coaching flags
+  const t360FlagHeaderRow=flagStart+flagRows.length+2;
+  while(aoa.length<=t360FlagHeaderRow) aoa.push([]);
+  aoa[t360FlagHeaderRow][FLAG_COL]='360 Engagement Flag';
+  const t360FlagHdrRow=t360FlagHeaderRow+1;
+  while(aoa.length<=t360FlagHdrRow) aoa.push([]);
+  aoa[t360FlagHdrRow][FLAG_COL]='Engagement Flag';
+  aoa[t360FlagHdrRow][FLAG_COL+1]='Cohort';
+  aoa[t360FlagHdrRow][FLAG_COL+2]='Response';
+  aoa[t360FlagHdrRow][FLAG_COL+3]='Notes';
+  const t360Start=t360FlagHdrRow+1;
   const t360Rows=flag360Data.length>0?flag360Data:[{name:'',cohort:'',response:''}];
-  t360Rows.forEach((f,i)=>{const row=fr+1+i; while(aoa.length<=row) aoa.push([]); aoa[row][6]=f.name; aoa[row][7]=parseInt(f.cohort||0); aoa[row][8]=f.response;});
-  tables.push({sheetName:'Coaching Overview',name:nextTid(),ref:`G${t360Start}:J${t360Start+t360Rows.length-1+1}`,cols:['Engagement Flag','Cohort','Response','Notes']});
+  t360Rows.forEach((f,i)=>{
+    const row=t360Start+i;
+    while(aoa.length<=row) aoa.push([]);
+    aoa[row][FLAG_COL]=f.name;
+    aoa[row][FLAG_COL+1]=parseInt(f.cohort||0);
+    aoa[row][FLAG_COL+2]=f.response;
+  });
+  tables.push({sheetName:'Coaching Overview',name:nextTid(),
+    ref:`I${t360Start+1}:L${t360Start+t360Rows.length+1}`,
+    cols:['Engagement Flag','Cohort','Response','Notes']});
 
-  return{aoa,tables};
+  // Return extra metadata for Excel formatting
+  const coachFlagMergeRow=coachFlagHeaderRow+1; // 1-indexed row for merge
+  const t360FlagMergeRow=t360FlagHeaderRow+1;
+  return{aoa,tables,archiveRowNums,coachFlagMergeRow,t360FlagMergeRow};
 }
 
 // ── 360 Progress AOA + table definitions ─────────────────────────────────────
@@ -1303,6 +1425,8 @@ function remove360Row(i){flag360Data.splice(i,1);render360Editor();renderEmailPr
 
 // ── Email hyperlink constants ──────────────────────────────────────────────────
 const MOMENTA_URL='https://degreed.com/develop?ssoprovider=bostonscientific#/user/academies/view/1486/content';
+const SUPPORT='<a href="mailto:bscsupport@bts.com">bscsupport@bts.com</a>';
+const NOTE_TEXT='<em><strong>NOTE:</strong> A report will be generated when your self-assessment has been completed, your manager has also completed the survey, and you have two rater groups with enough responses to be displayed in the report (minimum of 3 responses per group).</em>';
 const T360_URL='https://bsc.btsmomenta.com/#/deep-link/U2FsdGVkX1%2FGunC%2BcOESzqIntuMThZ2m8SFM2dRbn4v3dlZ2w1RnHtzs3nmDb%2FonTtXoF7cGI1NBaqR7sULBt3OAyg%3D%3D';
 const MOMENTA_LINK=`<a href="${MOMENTA_URL}">Momenta through Degreed</a>`;
 const T360_LINK=`<a href="${T360_URL}">Complete Your 360 Assessment</a>`;
