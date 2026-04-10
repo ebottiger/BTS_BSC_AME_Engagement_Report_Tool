@@ -364,7 +364,7 @@
   <!-- STEP 3: Existing XLSX -->
   <div class="card" id="step3Card" style="opacity:0.4;pointer-events:none;">
     <div class="step-header"><span class="step-badge">3</span><h2>Upload Existing Engagement Report (.xlsx)</h2></div>
-    <p class="subtitle">All existing sheets are preserved. Raw Data, Coaching Overview, and 360 Progress will be updated.</p>
+    <p class="subtitle">All existing sheets are preserved. Raw Data and Overview sheets will be updated with current data.</p>
     <div class="drop-zone" id="xlsxZone">
       <input type="file" id="xlsxFile" accept=".xlsx" onchange="handleXLSX(event)">
       <div class="icon">📊</div>
@@ -586,15 +586,20 @@ function handleHalo(event, slot){
 // ── XLSX ───────────────────────────────────────────────────────────────────────
 function extractTemplateDeadlines(){
   // Parse the uploaded template XLSX and extract existing cohort deadlines.
-  // Handles two cohort label formats:
-  //   "AME Cohort N YYYY"      (our generated output)
-  //   "Cohort CN Mon YYYY"     (existing client report, e.g. "Cohort C1 Jan 2026")
-  // The deadline row immediately follows the cohort label row, cols B-G (indices 1-6).
-  // Deadline cell format: "Call 1 (Feb 17-Mar 10)" or "Pod 1 (Apr)" → extract inside parens.
+  // Sheet name: "Overview" (client template) or "Coaching Overview" (our output) — tries both.
+  // Cohort label formats supported:
+  //   "AME Cohort N YYYY"        (our generated output)
+  //   "Cohort CN Mon YYYY"       (client template, e.g. "Cohort C1 Jan 2026")
+  // Deadline row is immediately after the cohort label row, cols B-G (indices 1-6).
+  // Deadline cell formats:
+  //   "Call 1 (Feb 17-Mar 10)"   → extracts "Feb 17-Mar 10" (content inside parens)
+  //   "Call 1"                   → bare label with no date = no deadline, returns 'by TBD'
+  //   "Pod 1 (Jan)"              → extracts "Jan"
   if(!xlsxData) return {};
   try{
     const wb=XLSX.read(xlsxData,{type:'array'});
-    const ws=wb.Sheets['Coaching Overview'];
+    // Try both sheet names
+    const ws=wb.Sheets['Overview']||wb.Sheets['Coaching Overview'];
     if(!ws) return {};
     const aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
     const found={};
@@ -615,9 +620,12 @@ function extractTemplateDeadlines(){
       const drow=aoa[i+1]||[];
       const dls=[1,2,3,4,5,6].map(ci=>{
         const v=String(drow[ci]||'').trim();
-        // Extract content inside parentheses: "Call 1 (Feb 17-Mar 10)" → "Feb 17-Mar 10"
+        // Extract content inside parens: "Call 1 (Feb 17-Mar 10)" → "Feb 17-Mar 10"
         const m=v.match(/\(([^)]+)\)/);
-        return m?m[1].trim():v||'by TBD';
+        if(m) return m[1].trim();
+        // No parens — strip "Call N" or "Pod N" prefix and return remainder, or 'by TBD'
+        const bare=v.replace(/^(Call|Pod)\s+\d+\s*/i,'').trim();
+        return bare||'by TBD';
       });
       found[cohortKey]=dls;
     }
