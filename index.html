@@ -1315,23 +1315,25 @@ function renderEmailPreview(){
     <p>We recommend archiving their journey in Momenta at this time. If the participant would like to continue, please let us know and we can explore options.</p>`;
   }
 
-  // Template 1: Book Session 1 only
+  // Template 1: Book Session 1 (360 Debrief)
   if(s1BookOnly.length>0){
     sections+=`<p>Here is recommended text to send to the above participants who need to schedule their <strong>1:1 Coaching Session One / 360 Debrief</strong>.</p>
     <div class="quoted">
       <p>"Hello,</p>
-      <p>BTS has let us know that you have yet to book your first session with your coach. Please log into ${MOMENTA_LINK} then navigate to the bar on the left menu and select the "My Coaching" and book your first coaching session.</p>
-      <p>In order to graduate AME you must attend all four coaching sessions and both pod sessions."</p>
+      <p>BTS has let us know that you have yet to book your 360 Debrief session with your coach. The first booking window has past, so please schedule your first coaching session and 360 debrief as soon as possible.</p>
+      <p>Please log into ${MOMENTA_LINK} then navigate to the bar on the left menu and select the <strong>"My Sessions"</strong> option to book your 360 Debrief.</p>
+      <p>If you have any issues please email ${SUPPORT} for assistance."</p>
     </div>`;
   }
 
-  // Template 2: Book Next Session (2-4)
+  // Template 2: Book Next Session (Sessions 2–4)
   if(sNextBook.length>0){
     sections+=`<p>Here is recommended text to send to the above participants who need to book their <strong>next coaching session</strong>.</p>
     <div class="quoted">
       <p>"Hello,</p>
-      <p>BTS has let us know that you have yet to book your next session with your coach. Please log into ${MOMENTA_LINK} then navigate to the bar on the left menu and select the "My Coaching" and book your next coaching session.</p>
-      <p>In order to graduate AME you must attend all four coaching sessions and both pod sessions."</p>
+      <p>BTS has let us know that you have yet to book your next session with your coach. Please schedule your next coaching session as soon as possible.</p>
+      <p>Please log into ${MOMENTA_LINK} then navigate to the bar on the left menu and select the <strong>"My Sessions"</strong> option to book your 1:1 session.</p>
+      <p>If you have any issues please email ${SUPPORT} for assistance."</p>
     </div>`;
   }
 
@@ -1341,20 +1343,19 @@ function renderEmailPreview(){
     sections+=`<p>Here is recommended text to send to the above participants who have yet to nominate their raters for their 360 report and book their 360 Debrief — <strong>${names}</strong>.</p>
     <div class="quoted">
       <p>"Hello,</p>
-      <p>BTS has let us know that you have not yet nominated your feedback providers for your 360 in the Advanced Manager Experience. Nominating your raters is a required step and ensures you receive a comprehensive report to support your development in AME.</p>
+      <p>BTS has let us know that you have not yet nominated your feedback providers for your 360 for AME and not yet booked your 360 Debrief Session. Nominating your raters is a required step and ensures you receive a comprehensive report to support your development in AME.</p>
       <p><strong>ACTION REQUIRED:</strong> Please log into ${MOMENTA_LINK} as soon as possible.</p>
       <p>Once logged in:</p>
-      <ul>
+      <ol>
         <li>Navigate to <strong>My Journey</strong></li>
-        <li>Click <strong>Resume</strong> next to "${T360_LINK}"</li>
-        <li>Select <strong>Access your 360 Survey and Report</strong></li>
+        <li>Click <strong>Resume</strong> next to "Your 360 Feedback Survey and Report"</li>
+        <li>Select "Access your 360 Survey and Report"</li>
         <li>Follow the instructions to nominate your raters</li>
-      </ul>
-      <p>It is important that you complete this step as soon as possible so your feedback providers have adequate time to respond and your report can be generated in time for your debrief. You must have your 360 report before your first session with your coach.</p>
-      <p>If you experience any technical difficulties, please contact <a href="mailto:bscsupport@bts.com">bscsupport@bts.com</a> and <a href="mailto:btsassessmentsnam@halo-feedback.com">btsassessmentsnam@halo-feedback.com</a> for assistance.</p>
-      <p>BTS has also let us know that you have yet to book your first session with your coach. Please log into ${MOMENTA_LINK} then navigate to the bar on the left menu and select the "My Coaching" and book your first coaching session.</p>
-      <p>In order to graduate AME you must attend all four coaching sessions.</p>
-      <p><strong>NOTE:</strong> A report will be generated when your self-assessment has been completed, your manager has also completed the survey, and you have two rater groups with enough responses to be displayed in the report (minimum of 3 responses per group)."</p>
+        <li>Then navigate to <strong>"My Sessions"</strong> to book your 360 Debrief with your coach for 48 hours after you expect your survey to be completed.</li>
+      </ol>
+      <p>It is important that you complete this step as soon as possible so your feedback providers have adequate time to respond and your report can be generated on time.</p>
+      <p>If you experience any technical difficulties, please contact ${SUPPORT} for assistance.</p>
+      <p>${NOTE_TEXT}"</p>
     </div>`;
   }
 
@@ -1363,17 +1364,18 @@ function renderEmailPreview(){
     sections+=`<p>Here is recommended text to send to the above participants who need to nominate their raters.</p>
     <div class="quoted">
       <p>"Hello,</p>
-      <p>BTS let us know that you have yet to nominate your raters for your 360 survey. As part of the Advanced Manager Experience, your 360-degree feedback is a critical component of your development journey. To ensure you receive a comprehensive and meaningful report, you must first nominate your raters.</p>
-      <p><strong>Action Required:</strong><br>
-      Please log into ${MOMENTA_LINK} and complete your rater nominations as soon as possible. This step is essential to allow your selected raters enough time to provide thoughtful feedback.</p>
-      <p>Once you have submitted your nominations, we strongly encourage you to reach out to your raters directly to ask them to prioritize completing your feedback. A personal message can significantly improve response rates. You may use the template below:</p>
-      <div class="quoted" style="margin:12px 0;background:#F3F4F6;">
-        <p>"Hello colleagues,</p>
-        <p>As you may know, I'm going through the process of collecting 360-degree feedback. I want to ensure that I receive enough responses to receive a full report. BTS is keeping my survey open past the deadline. If you have already taken the time to complete your feedback, I appreciate it. If you have not yet done so, please look for an email from "Boston Scientific 360 Surveys btsassessmentsnam@halo-feedback.com" and complete it as soon as possible. If you can't find the email with the link, please reach out for technical support by emailing btsassessmentsnam@halo-feedback.com.</p>
-        <p>Thank you."</p>
-      </div>
-      <p>Your timely action ensures you receive robust, well-rounded feedback that will directly support your growth and effectiveness as a leader.</p>
-      <p>Please let me know if you have any questions."</p>
+      <p>BTS has let us know that you have not yet nominated your feedback providers for your 360 for AME. Nominating your raters is a required step and ensures you receive a comprehensive report to support your development in AME.</p>
+      <p><strong>ACTION REQUIRED:</strong> Please log into ${MOMENTA_LINK} as soon as possible.</p>
+      <p>Once logged in:</p>
+      <ol>
+        <li>Navigate to <strong>My Journey</strong></li>
+        <li>Click <strong>Resume</strong> next to "Your 360 Feedback Survey and Report"</li>
+        <li>Select "Access your 360 Survey and Report"</li>
+        <li>Follow the instructions to nominate your raters</li>
+      </ol>
+      <p>It is important that you complete this step as soon as possible so your feedback providers have adequate time to respond and your report can be generated on time.</p>
+      <p>If you experience any technical difficulties, please contact ${SUPPORT} for assistance.</p>
+      <p>${NOTE_TEXT}"</p>
     </div>`;
   }
 
@@ -1383,18 +1385,18 @@ function renderEmailPreview(){
     sections+=`<p>Here is recommended text to send to the above participants who need to complete their self-assessment — <strong>${names}</strong>.</p>
     <div class="quoted">
       <p>"Hello,</p>
-      <p>BTS has let us know that you have not yet completed your self-survey for AME. This step is required before your 360 report can be published.</p>
+      <p>BTS has let us know that you have not completed your self survey yet for your 360 for AME. Completing your self survey is a required step and ensures you receive a comprehensive report to support your development in AME.</p>
       <p><strong>ACTION REQUIRED:</strong> Please log into ${MOMENTA_LINK} as soon as possible.</p>
       <p>Once logged in:</p>
-      <ul>
+      <ol>
         <li>Navigate to <strong>My Journey</strong></li>
-        <li>Click <strong>Resume</strong> next to "${T360_LINK}"</li>
-        <li>Select <strong>Access your 360 Survey and Report</strong></li>
-        <li>Complete and submit your self-survey</li>
-      </ul>
-      <p>Your self-assessment is a required component of the 360 process and must be submitted before your report can be generated and shared.</p>
-      <p>If you experience any technical difficulties, please contact <a href="mailto:bscsupport@bts.com">bscsupport@bts.com</a> and <a href="mailto:btsassessmentsnam@halo-feedback.com">btsassessmentsnam@halo-feedback.com</a> for assistance.</p>
-      <p><strong>NOTE:</strong> A report will be generated when your self-assessment has been completed, your manager has also completed the survey, and you have two rater groups with enough responses to be displayed in the report (minimum of 3 responses per group)."</p>
+        <li>Click <strong>Resume</strong> next to "Your 360 Feedback Survey and Report"</li>
+        <li>Select "Access your 360 Survey and Report"</li>
+        <li>Launch Halo</li>
+        <li>Follow the instructions to complete your own survey.</li>
+      </ol>
+      <p>If you experience any technical difficulties, please contact ${SUPPORT} for assistance.</p>
+      <p>${NOTE_TEXT}"</p>
     </div>`;
   }
 
