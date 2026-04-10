@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boston Scientific · AME Engagement Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #F4F6F9; color: #1a1a2e; min-height: 100vh; }
+
+  .header { background: #003C71; color: white; padding: 0; box-shadow: 0 3px 16px rgba(0,60,113,0.22); }
+  .header-inner { max-width: 980px; margin: 0 auto; padding: 20px 24px; display: flex; align-items: center; gap: 20px; }
+  .bsc-wordmark { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: white; line-height: 1; text-transform: uppercase; font-family: Arial, sans-serif; }
+  .bsc-wordmark span { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: rgba(255,255,255,0.75); margin-top: 3px; }
+  .header-divider { width: 1px; height: 40px; background: rgba(255,255,255,0.25); }
+  .header-text h1 { font-size: 17px; font-weight: 600; color: white; }
+  .header-text p { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 3px; }
+  .header-accent { margin-left: auto; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 5px 14px; font-size: 11px; color: rgba(255,255,255,0.85); font-weight: 500; letter-spacing: 0.5px; }
+  .accent-bar { height: 4px; background: linear-gradient(90deg, #07457E 0%, #4A90C4 60%, #A8D1E7 100%); }
+
+  .container { max-width: 980px; margin: 32px auto; padding: 0 24px 60px; }
+
+  .card { background: white; border-radius: 8px; box-shadow: 0 1px 6px rgba(0,60,113,0.08), 0 0 0 1px rgba(0,60,113,0.06); padding: 28px 32px; margin-bottom: 20px; transition: opacity 0.2s; }
+  .card h2 { font-size: 15px; font-weight: 700; color: #003C71; margin-bottom: 4px; }
+  .card .subtitle { font-size: 13px; color: #6b7280; margin-bottom: 18px; margin-left: 38px; }
+  .step-badge { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: #003C71; color: white; border-radius: 50%; font-size: 12px; font-weight: 700; margin-right: 10px; flex-shrink: 0; }
+  .step-header { display: flex; align-items: center; margin-bottom: 4px; }
+  .step-header h2 { margin-bottom: 0; }
+
+  .drop-zone { border: 2px dashed #CBD5E1; border-radius: 8px; padding: 32px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: #F8FAFC; position: relative; }
+  .drop-zone:hover { border-color: #003C71; background: #EEF4FB; }
+  .drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-zone .icon { font-size: 32px; margin-bottom: 8px; }
+  .drop-zone p { font-size: 14px; color: #4B5563; }
+  .drop-zone .hint { font-size: 12px; color: #9CA3AF; margin-top: 4px; }
+  .drop-zone.loaded { border-color: #059669; background: #ECFDF5; }
+  .drop-zone.loaded p { color: #059669; font-weight: 600; }
+
+  /* Multi-drop zone for 360 files */
+  .multi-drop-area { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+  .drop-zone-sm { border: 2px dashed #CBD5E1; border-radius: 8px; padding: 18px 20px; cursor: pointer; transition: all 0.2s; background: #F8FAFC; position: relative; display: flex; align-items: center; gap: 14px; }
+  .drop-zone-sm:hover { border-color: #003C71; background: #EEF4FB; }
+  .drop-zone-sm input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-zone-sm .dz-icon { font-size: 22px; flex-shrink: 0; }
+  .drop-zone-sm .dz-text { font-size: 13px; color: #4B5563; }
+  .drop-zone-sm .dz-hint { font-size: 11px; color: #9CA3AF; }
+  .drop-zone-sm.loaded { border-color: #059669; background: #ECFDF5; }
+  .drop-zone-sm.loaded .dz-text { color: #059669; font-weight: 600; }
+  .cohort-label { font-size: 12px; font-weight: 700; color: #003C71; background: #DBEAFE; border-radius: 5px; padding: 3px 9px; white-space: nowrap; }
+  .optional-tag { font-size: 11px; color: #9CA3AF; margin-left: 6px; }
+
+  /* Exclusion list */
+  .exclusion-row { margin-top: 14px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 13px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .exclusion-label { font-size: 13px; font-weight: 600; color: #991B1B; display: flex; flex-direction: column; gap: 3px; }
+  .exclusion-hint { font-size: 11px; font-weight: 400; color: #7F1D1D; opacity: 0.8; }
+  .exclusion-input { width: 100%; padding: 8px 11px; border: 1px solid #FECACA; border-radius: 6px; font-size: 13px; color: #374151; background: white; }
+  .exclusion-input:focus { outline: none; border-color: #991B1B; box-shadow: 0 0 0 3px rgba(153,27,27,0.08); }
+
+  .date-row { display: flex; align-items: center; gap: 12px; margin-top: 18px; background: #F8FAFC; border-radius: 8px; padding: 13px 16px; border: 1px solid #E2E8F0; flex-wrap: wrap; }
+  .date-row label { font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap; }
+  .date-row input[type="date"] { padding: 7px 11px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 13px; color: #111827; background: white; cursor: pointer; }
+  .date-row input[type="date"]:focus { outline: none; border-color: #003C71; }
+  .btn-today { padding: 7px 14px; background: #003C71; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn-today:hover { background: #07457E; }
+  .date-hint { font-size: 12px; color: #6B7280; }
+
+  .cohort-config { margin-top: 18px; }
+  .cohort-row { display: grid; grid-template-columns: 210px 1fr 1fr 1fr 1fr 1fr 1fr; gap: 8px; align-items: center; margin-bottom: 7px; background: #F8FAFC; border-radius: 7px; padding: 9px 12px; font-size: 13px; }
+  .cohort-row.header-row { background: #003C71; color: white; font-weight: 600; font-size: 12px; padding: 8px 12px; }
+  .cohort-name { font-weight: 600; color: #003C71; font-size: 13px; }
+  input[type="text"].deadline-input { width: 100%; padding: 5px 8px; border: 1px solid #D1D5DB; border-radius: 5px; font-size: 12px; color: #374151; background: white; }
+  input[type="text"].deadline-input:focus { outline: none; border-color: #003C71; }
+
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 26px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.18s; }
+  .btn-primary { background: #003C71; color: white; }
+  .btn-primary:hover { background: #07457E; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,60,113,0.3); }
+  .btn-primary:disabled { background: #9CA3AF; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-success { background: #059669; color: white; }
+  .btn-success:hover { background: #047857; transform: translateY(-1px); }
+  .btn-success:disabled { background: #9CA3AF; cursor: not-allowed; transform: none; }
+  .btn-email { background: #7C3AED; color: white; }
+  .btn-email:hover { background: #6D28D9; transform: translateY(-1px); }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+
+  .status-bar { border-radius: 7px; padding: 12px 16px; font-size: 13px; display: none; margin-top: 14px; border: 1px solid; }
+  .status-bar.error   { background: #FEF2F2; border-color: #FECACA; color: #B91C1C; }
+  .status-bar.success { background: #ECFDF5; border-color: #A7F3D0; color: #065F46; }
+  .status-bar.info    { background: #EFF6FF; border-color: #BFDBFE; color: #1E40AF; }
+
+  .preview-section { display: none; }
+  .preview-section > h3 { font-size: 13px; font-weight: 700; color: #003C71; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+  .summary-card { background: #F8FAFC; border-radius: 8px; padding: 16px; text-align: center; border: 1px solid #E2E8F0; }
+  .summary-card .number { font-size: 30px; font-weight: 800; color: #003C71; }
+  .summary-card .label { font-size: 11px; color: #6B7280; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .cohort-preview { border: 1px solid #E2E8F0; border-radius: 8px; margin-bottom: 14px; overflow: hidden; }
+  .cohort-preview-header { background: #003C71; color: white; padding: 10px 16px; font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  .cohort-preview-header .badge { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 2px 10px; font-size: 11px; }
+  .preview-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .preview-table th { background: #F1F5F9; padding: 8px 12px; text-align: center; font-weight: 600; color: #374151; border-bottom: 1px solid #E2E8F0; font-size: 12px; }
+  .preview-table th:first-child { text-align: left; }
+  .preview-table td { padding: 7px 12px; border-bottom: 1px solid #F1F5F9; text-align: center; }
+  .preview-table td:first-child { font-weight: 500; color: #374151; text-align: left; }
+  .preview-table tr:last-child td { border-bottom: none; }
+
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .pill-completed { background: #D1FAE5; color: #065F46; }
+  .pill-booked    { background: #DBEAFE; color: #1E40AF; }
+  .pill-unbooked  { background: #F3F4F6; color: #6B7280; border: 1px solid #E5E7EB; }
+  .pill-missed    { background: #FEE2E2; color: #991B1B; }
+  .pill-awaiting  { background: #FEF3C7; color: #92400E; }
+
+  /* ── 360 preview styles ── */
+  .t360-comparison { width: 100%; border-collapse: collapse; font-size: 13px; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; margin-bottom: 18px; }
+  .t360-comparison th { background: #003C71; color: white; padding: 9px 14px; font-size: 12px; font-weight: 600; text-align: center; border-right: 1px solid rgba(255,255,255,0.15); }
+  .t360-comparison th:first-child { text-align: left; border-right: 1px solid rgba(255,255,255,0.15); }
+  .t360-comparison td { padding: 8px 14px; border-bottom: 1px solid #F1F5F9; border-right: 1px solid #F1F5F9; text-align: center; font-size: 13px; }
+  .t360-comparison td:first-child { font-weight: 600; color: #374151; text-align: left; background: #F8FAFC; }
+  .t360-comparison tr:last-child td { border-bottom: none; }
+  .t360-comparison .flag-row td:first-child { color: #B91C1C; }
+  .t360-val-good { color: #065F46; font-weight: 600; }
+  .t360-val-warn { color: #B91C1C; font-weight: 700; }
+
+  .t360-detail { width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #E2E8F0; overflow: hidden; margin-bottom: 18px; }
+  .t360-detail th { background: #07457E; color: white; padding: 7px 12px; font-size: 11px; font-weight: 600; text-align: left; }
+  .t360-detail td { padding: 6px 12px; border-bottom: 1px solid #F1F5F9; }
+  .t360-detail tr:nth-child(even) td { background: #F8FAFC; }
+  .t360-detail tr:last-child td { border-bottom: none; }
+  .flag-chip { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+  .flag-chip-red { background: #FEE2E2; color: #991B1B; }
+  .flag-chip-amber { background: #FEF3C7; color: #92400E; }
+  .flag-chip-green { background: #D1FAE5; color: #065F46; }
+
+  .flags-section { margin-top: 22px; }
+  .flags-section h3 { font-size: 13px; font-weight: 700; color: #003C71; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .flags-table { width: 100%; border-collapse: collapse; font-size: 13px; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; }
+  .flags-table th { background: #003C71; color: white; padding: 9px 14px; text-align: left; font-size: 12px; font-weight: 600; }
+  .flags-table td { padding: 8px 14px; border-bottom: 1px solid #F1F5F9; }
+  .flags-table tr:last-child td { border-bottom: none; }
+  .flags-table tr:nth-child(even) td { background: #F8FAFC; }
+  .note-bts { color: #1E40AF; font-weight: 600; font-size: 12px; }
+  .note-bsc { color: #B91C1C; font-weight: 600; font-size: 12px; }
+
+  .filter-note { background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 7px; padding: 10px 14px; font-size: 12px; color: #78350F; margin-bottom: 16px; }
+  .section-divider { border: none; border-top: 2px solid #E2E8F0; margin: 24px 0 20px; }
+
+  /* Email composer */
+  .email-composer { display: none; margin-top: 28px; border-top: 2px solid #E2E8F0; padding-top: 24px; }
+  .email-composer h3 { font-size: 15px; font-weight: 700; color: #003C71; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .email-composer .email-sub { font-size: 13px; color: #6B7280; margin-bottom: 20px; }
+  .email-meta { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .email-meta-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 13px; }
+  .email-meta-row:last-child { margin-bottom: 0; }
+  .email-meta-row label { font-weight: 600; color: #374151; width: 60px; flex-shrink: 0; }
+  .email-meta-row input[type="text"] { flex: 1; padding: 6px 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 13px; color: #111827; background: white; }
+  .email-meta-row input[type="text"]:focus { outline: none; border-color: #003C71; }
+  .flag-360-editor { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .flag-360-editor h4 { font-size: 13px; font-weight: 700; color: #003C71; margin-bottom: 12px; }
+  .flag-360-row { display: grid; grid-template-columns: 1fr 80px 1fr auto; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .flag-360-row input, .flag-360-row select { padding: 6px 8px; border: 1px solid #D1D5DB; border-radius: 5px; font-size: 12px; color: #374151; background: white; width: 100%; }
+  .flag-360-row input:focus, .flag-360-row select:focus { outline: none; border-color: #003C71; }
+  .btn-add-flag { padding: 6px 12px; background: #003C71; color: white; border: none; border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 4px; }
+  .btn-add-flag:hover { background: #07457E; }
+  .btn-remove-flag { padding: 4px 8px; background: #FEE2E2; color: #B91C1C; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; font-weight: 600; }
+  .flag-360-header { display: grid; grid-template-columns: 1fr 80px 1fr auto; gap: 8px; font-size: 11px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; padding: 0 2px; }
+  .email-preview-box { border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+  .email-preview-header { background: #F1F5F9; padding: 10px 16px; font-size: 12px; font-weight: 600; color: #374151; display: flex; justify-content: space-between; align-items: center; }
+  .email-preview-body { padding: 20px 24px; font-size: 13px; line-height: 1.7; color: #1F2937; background: white; max-height: 600px; overflow-y: auto; }
+  .email-preview-body p { margin-bottom: 12px; }
+  .email-preview-body .email-table { width: auto; border-collapse: collapse; font-size: 12px; margin: 12px 0; }
+  .email-preview-body .email-table th { background: #003C71; color: white; padding: 6px 12px; text-align: left; font-size: 11px; }
+  .email-preview-body .email-table td { padding: 5px 12px; border: 1px solid #E2E8F0; }
+  .email-preview-body .email-table tr:nth-child(even) td { background: #F8FAFC; }
+  .email-preview-body .quoted { font-style: italic; color: #374151; border-left: 3px solid #003C71; padding-left: 14px; margin: 10px 0; }
+  .email-preview-body .sig { margin-top: 20px; font-size: 12px; color: #4B5563; border-top: 1px solid #E2E8F0; padding-top: 14px; }
+  .email-preview-body ul { margin: 6px 0 10px 24px; }
+  .copy-btn { padding: 6px 14px; background: #003C71; color: white; border: none; border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .copy-btn:hover { background: #07457E; }
+  .copy-btn.copied { background: #059669; }
+  /* Self-assessment toggle */
+  .toggle-row { display: flex; align-items: center; gap: 12px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }
+  .toggle { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: #D1D5DB; border-radius: 24px; cursor: pointer; transition: 0.2s; }
+  .toggle-slider:before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+  input:checked + .toggle-slider { background: #003C71; }
+  input:checked + .toggle-slider:before { transform: translateX(20px); }
+  .subject-display { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 7px; padding: 10px 14px; font-size: 13px; color: #374151; margin-bottom: 12px; }
+  .subject-display span { font-weight: 600; color: #003C71; }
+
+  .footer { border-top: 1px solid #E2E8F0; margin-top: 40px; padding-top: 20px; text-align: center; font-size: 11px; color: #9CA3AF; }
+  .footer strong { color: #003C71; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="bsc-wordmark">Boston Scientific<span>BTS</span></div>
+    <div class="header-divider"></div>
+    <div class="header-text">
+      <h1>Advanced Manager Experience — Engagement Report</h1>
+      <p>Program Manager Assistant · Powered by BTS</p>
+    </div>
+    <div class="header-accent">AME 2026 Cohorts</div>
+  </div>
+</div>
+<div class="accent-bar"></div>
+
+<div class="container">
+
+  <!-- STEP 1: Pathways CSV -->
+  <div class="card">
+    <div class="step-header"><span class="step-badge">1</span><h2>Upload Pathways Wide Report (.csv)</h2></div>
+    <p class="subtitle">Upload up to 2 CSV files (AME spans multiple reports). DNS/DNF and Demo Coach rows are filtered out automatically.</p>
+    <div class="multi-drop-area">
+      <div class="drop-zone-sm" id="csvZone1">
+        <input type="file" accept=".csv" onchange="handleCSV(event,0)">
+        <div class="dz-icon">📄</div>
+        <div>
+          <div class="dz-text" id="csvLabel1">Pathways CSV — File 1</div>
+          <div class="dz-hint">pathways-wide-report-YYYY-MM-DD.csv</div>
+        </div>
+      </div>
+      <div class="drop-zone-sm" id="csvZone2">
+        <input type="file" accept=".csv" onchange="handleCSV(event,1)">
+        <div class="dz-icon">📄</div>
+        <div>
+          <div class="dz-text" id="csvLabel2">Pathways CSV — File 2 <span class="optional-tag">(optional)</span></div>
+          <div class="dz-hint">pathways-wide-report-YYYY-MM-DD.csv</div>
+        </div>
+      </div>
+    </div>
+    <div class="date-row">
+      <label>📅 Report Date:</label>
+      <input type="date" id="reportDate" />
+      <button class="btn-today" onclick="setToday()">📆 Use Today</button>
+      <span class="date-hint">Under 7 days = BTS reminder &nbsp;·&nbsp; 7+ days = BSC reminder</span>
+    </div>
+    <div class="status-bar" id="csvStatus"></div>
+  </div>
+
+  <!-- STEP 2: Halo 360 Files -->
+  <div class="card" id="step2Card" style="opacity:0.4;pointer-events:none;">
+    <div class="step-header"><span class="step-badge">2</span><h2>Upload Halo 360 Survey Files (.xls)</h2></div>
+    <p class="subtitle">Upload one SurveyStatusReport per active cohort — up to 12 files supported. Cohort number is detected automatically from the Project name. Demo/sample rows filtered out.</p>
+    <div class="multi-drop-area" id="haloDropArea">
+      <div class="drop-zone-sm" id="halo1Zone">
+        <input type="file" accept=".xls,.xlsx" onchange="handleHalo(event, 0)">
+        <div class="dz-icon">📋</div>
+        <div>
+          <div class="dz-text" id="halo1Label">SurveyStatusReport — File 1</div>
+          <div class="dz-hint">Cohort detected automatically from Project name</div>
+        </div>
+      </div>
+      <div class="drop-zone-sm" id="halo2Zone">
+        <input type="file" accept=".xls,.xlsx" onchange="handleHalo(event, 1)">
+        <div class="dz-icon">📋</div>
+        <div>
+          <div class="dz-text" id="halo2Label">SurveyStatusReport — File 2 <span class="optional-tag">(optional)</span></div>
+          <div class="dz-hint">Cohort detected automatically from Project name</div>
+        </div>
+      </div>
+      <div class="drop-zone-sm" id="halo3Zone">
+        <input type="file" accept=".xls,.xlsx" onchange="handleHalo(event, 2)">
+        <div class="dz-icon">📋</div>
+        <div>
+          <div class="dz-text" id="halo3Label">SurveyStatusReport — File 3 <span class="optional-tag">(optional)</span></div>
+          <div class="dz-hint">Cohort detected automatically from Project name</div>
+        </div>
+      </div>
+      <div class="drop-zone-sm" id="halo4Zone">
+        <input type="file" accept=".xls,.xlsx" onchange="handleHalo(event, 3)">
+        <div class="dz-icon">📋</div>
+        <div>
+          <div class="dz-text" id="halo4Label">SurveyStatusReport — File 4 <span class="optional-tag">(optional)</span></div>
+          <div class="dz-hint">Cohort detected automatically from Project name</div>
+        </div>
+      </div>
+      <div class="drop-zone-sm" id="halo5Zone">
+        <input type="file" accept=".xls,.xlsx" onchange="handleHalo(event, 4)">
+        <div class="dz-icon">📋</div>
+        <div>
+          <div class="dz-text" id="halo5Label">SurveyStatusReport — File 5 <span class="optional-tag">(optional)</span></div>
+          <div class="dz-hint">Cohort detected automatically from Project name</div>
+        </div>
+      </div>
+      <div class="drop-zone-sm" id="halo6Zone">
+        <input type="file" accept=".xls,.xlsx" onchange="handleHalo(event, 5)">
+        <div class="dz-icon">📋</div>
+        <div>
+          <div class="dz-text" id="halo6Label">SurveyStatusReport — File 6 <span class="optional-tag">(optional)</span></div>
+          <div class="dz-hint">Cohort detected automatically from Project name</div>
+        </div>
+      </div>
+      <div class="drop-zone-sm" id="halo7Zone">
+        <input type="file" accept=".xls,.xlsx" onchange="handleHalo(event, 6)">
+        <div class="dz-icon">📋</div>
+        <div>
+          <div class="dz-text" id="halo7Label">SurveyStatusReport — File 7 <span class="optional-tag">(optional)</span></div>
+          <div class="dz-hint">Cohort detected automatically from Project name</div>
+        </div>
+      </div>
+      <div class="drop-zone-sm" id="halo8Zone">
+        <input type="file" accept=".xls,.xlsx" onchange="handleHalo(event, 7)">
+        <div class="dz-icon">📋</div>
+        <div>
+          <div class="dz-text" id="halo8Label">SurveyStatusReport — File 8 <span class="optional-tag">(optional)</span></div>
+          <div class="dz-hint">Cohort detected automatically from Project name</div>
+        </div>
+      </div>
+      <div class="drop-zone-sm" id="halo9Zone">
+        <input type="file" accept=".xls,.xlsx" onchange="handleHalo(event, 8)">
+        <div class="dz-icon">📋</div>
+        <div>
+          <div class="dz-text" id="halo9Label">SurveyStatusReport — File 9 <span class="optional-tag">(optional)</span></div>
+          <div class="dz-hint">Cohort detected automatically from Project name</div>
+        </div>
+      </div>
+      <div class="drop-zone-sm" id="halo10Zone">
+        <input type="file" accept=".xls,.xlsx" onchange="handleHalo(event, 9)">
+        <div class="dz-icon">📋</div>
+        <div>
+          <div class="dz-text" id="halo10Label">SurveyStatusReport — File 10 <span class="optional-tag">(optional)</span></div>
+          <div class="dz-hint">Cohort detected automatically from Project name</div>
+        </div>
+      </div>
+      <div class="drop-zone-sm" id="halo11Zone">
+        <input type="file" accept=".xls,.xlsx" onchange="handleHalo(event, 10)">
+        <div class="dz-icon">📋</div>
+        <div>
+          <div class="dz-text" id="halo11Label">SurveyStatusReport — File 11 <span class="optional-tag">(optional)</span></div>
+          <div class="dz-hint">Cohort detected automatically from Project name</div>
+        </div>
+      </div>
+      <div class="drop-zone-sm" id="halo12Zone">
+        <input type="file" accept=".xls,.xlsx" onchange="handleHalo(event, 11)">
+        <div class="dz-icon">📋</div>
+        <div>
+          <div class="dz-text" id="halo12Label">SurveyStatusReport — File 12 <span class="optional-tag">(optional)</span></div>
+          <div class="dz-hint">Cohort detected automatically from Project name</div>
+        </div>
+      </div>
+    </div>
+    <div class="status-bar" id="haloStatus"></div>
+
+    <!-- Exclusion list -->
+    <div class="exclusion-row">
+      <div class="exclusion-label">
+        <span>🚫 Exclude participants by name</span>
+        <span class="exclusion-hint">Comma-separated. These names will be removed from all Halo files before processing. "Sam Sample" is always excluded automatically.</span>
+      </div>
+      <input type="text" id="haloExclusions" class="exclusion-input"
+        placeholder="e.g. Elya Bottiger, John Doe"
+        value=""
+        oninput="renderEmailPreview && flag360Data.length && renderEmailPreview()">
+    </div>
+  </div>
+
+  <!-- STEP 3: Existing XLSX -->
+  <div class="card" id="step3Card" style="opacity:0.4;pointer-events:none;">
+    <div class="step-header"><span class="step-badge">3</span><h2>Upload Existing Engagement Report (.xlsx)</h2></div>
+    <p class="subtitle">All existing sheets are preserved. Raw Data, Coaching Overview, and 360 Progress will be updated.</p>
+    <div class="drop-zone" id="xlsxZone">
+      <input type="file" id="xlsxFile" accept=".xlsx" onchange="handleXLSX(event)">
+      <div class="icon">📊</div>
+      <p id="xlsxLabel">Drop XLSX here or click to browse</p>
+      <p class="hint">AME_Engagement_Report_MM_DD.xlsx</p>
+    </div>
+    <div class="status-bar" id="xlsxStatus"></div>
+  </div>
+
+  <!-- STEP 4: Cohort Deadlines -->
+  <div class="card" id="step4Card" style="opacity:0.4;pointer-events:none;">
+    <div class="step-header"><span class="step-badge">4</span><h2>Configure Cohort Deadlines</h2></div>
+    <p class="subtitle">Update the window labels for each AME cohort (6 sessions: 4 coaching + 2 pod).</p>
+    <div class="cohort-config" id="cohortConfig"></div>
+  </div>
+
+  <!-- STEP 5: Preview & Generate -->
+  <div class="card" id="step5Card" style="opacity:0.4;pointer-events:none;">
+    <div class="step-header"><span class="step-badge">5</span><h2>Preview, Generate & Compose Email</h2></div>
+    <p class="subtitle">Review coaching, pod, and 360 data, download the updated report, then compose your email.</p>
+
+    <div class="preview-section" id="previewSection">
+
+      <!-- Coaching section -->
+      <div class="filter-note" id="filterNote"></div>
+      <div class="summary-grid" id="summaryGrid"></div>
+      <h3>Session Overview — By Cohort</h3>
+      <div id="cohortPreviews"></div>
+      <div class="flags-section">
+        <h3>⚠ Coaching Engagement Flags</h3>
+        <div id="flagsTable"></div>
+      </div>
+
+      <hr class="section-divider">
+
+      <!-- 360 section -->
+      <h3>360 Progress Dashboard</h3>
+      <div id="t360Preview"></div>
+
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-success" id="generateBtn" onclick="generateReport()" disabled style="display:none;">⬇️ Download Updated Report</button>
+      <button class="btn btn-email" id="emailBtn" onclick="openEmailComposer()" disabled style="display:none;">✉️ Compose Email</button>
+    </div>
+    <div class="status-bar" id="generateStatus"></div>
+
+    <!-- Email Composer -->
+    <div class="email-composer" id="emailComposer">
+      <h3>✉️ Email Composer</h3>
+      <p class="email-sub">Review, edit the 360 flags, then copy your ready-to-send email.</p>
+      <div class="email-meta">
+        <div class="email-meta-row"><label>To:</label><input type="text" id="emailTo" value="BSC Talent Development" /></div>
+        <div class="email-meta-row"><label>Cc:</label><input type="text" id="emailCc" value="Francis Prior; Nigam, Nitin (he/him/his)" /></div>
+      </div>
+      <div class="subject-display">Subject: <span id="emailSubject"></span></div>
+
+      <!-- Self-assessment toggle -->
+      <div class="toggle-row">
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#92400E;">Include Self Assessment reminder in email</label>
+          <div style="font-size:12px;color:#78350F;margin-top:3px;">Only include when you want BSC to reach out to participants who have not completed their self-survey.</div>
+        </div>
+        <label class="toggle" style="flex-shrink:0;margin-left:16px;">
+          <input type="checkbox" id="selfAssessToggle" onchange="renderEmailPreview()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="flag-360-editor">
+        <h4>360 Engagement Flags <span style="font-weight:400;color:#6B7280;font-size:12px;">— edit manually as needed</span></h4>
+        <div class="flag-360-header"><div>Name</div><div>Cohort</div><div>Response</div><div></div></div>
+        <div id="flag360Rows"></div>
+        <button class="btn-add-flag" onclick="add360Row()">+ Add Row</button>
+      </div>
+      <div class="email-preview-box">
+        <div class="email-preview-header">
+          Email Preview
+          <button class="copy-btn" id="copyBtn" onclick="copyEmail()">📋 Copy Email</button>
+        </div>
+        <div class="email-preview-body" id="emailPreviewBody"></div>
+      </div>
+      <p style="font-size:12px;color:#6B7280;">Tip: Click <strong>Copy Email</strong> then paste directly into Outlook — tables and formatting carry over.</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    <strong>Boston Scientific Corporation</strong> · Advanced Manager Experience 2026 · Confidential &amp; Internal Use Only<br>
+    Generated by BTS Program Manager Assistant
+  </div>
+</div>
+
+<script>
+let csvData=null, xlsxData=null;
+let parsedCohorts={}, cohortDeadlines={};
+let removedCount={dns:0,demo:0};
+let computedFlags=[];
+let haloData=[null,null,null,null,null,null,null,null,null,null,null,null]; // up to 12 cohort 360 files
+let parsed360=[];              // [{cohortNum, cohortLabel, participants:[...]}]
+
+function nextGreeting(){return 'Hello Team,';}
+function setToday(){const t=new Date();document.getElementById('reportDate').value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;}
+window.addEventListener('load',setToday);
+function getReportDate(){const v=document.getElementById('reportDate').value;return v?new Date(v+'T12:00:00'):new Date();}
+
+// ── CSV ────────────────────────────────────────────────────────────────────────
+let csvFiles=[null,null]; // up to 2 CSV files
+
+function handleCSV(event,slot){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const{rows,removed}=filterRows(parseCSVRaw(e.target.result));
+      csvFiles[slot]={rows,removed,name:file.name};
+      document.getElementById(`csvZone${slot+1}`).classList.add('loaded');
+      document.getElementById(`csvLabel${slot+1}`).textContent=`✓ ${file.name}`;
+      // Merge all loaded CSVs
+      let allRows=[],totalDns=0,totalDemo=0;
+      csvFiles.filter(Boolean).forEach(f=>{allRows=[...allRows,...f.rows];totalDns+=f.removed.dns;totalDemo+=f.removed.demo;});
+      csvData=allRows;
+      removedCount={dns:totalDns,demo:totalDemo};
+      parsedCohorts=groupByCohort(csvData);
+      showStatus('csvStatus',`✓ Loaded ${csvData.length} records across ${Object.keys(parsedCohorts).length} cohorts from ${csvFiles.filter(Boolean).length} file(s). Removed: ${totalDns} DNS/DNF · ${totalDemo} Demo Coach.`,'success');
+      unlock('step2Card');
+    }catch(err){showStatus('csvStatus','✗ Error: '+err.message,'error');}
+  };
+  reader.readAsText(file);
+}
+function parseCSVRaw(text){
+  const lines=text.split('\n').filter(l=>l.trim());
+  const headers=parseCSVLine(lines[0]);
+  return lines.slice(1).map(line=>{const vals=parseCSVLine(line),obj={};headers.forEach((h,i)=>obj[h.trim()]=(vals[i]||'').trim());return obj;});
+}
+function filterRows(rows){
+  let dns=0,demo=0;
+  const kept=rows.filter(r=>{
+    const arch=(r['Archive Type']||'').trim().toUpperCase();
+    if(arch==='DNS'||arch==='DNF'){dns++;return false;}
+    if((r['Primary Coach']||'').trim().toLowerCase()==='demo coach'){demo++;return false;}
+    return true;
+  });
+  return{rows:kept,removed:{dns,demo}};
+}
+function parseCSVLine(line){const result=[];let inQ=false,cur='';for(const c of line){if(c==='"'){inQ=!inQ;continue;}if(c===','&&!inQ){result.push(cur);cur='';continue;}cur+=c;}result.push(cur);return result;}
+function groupByCohort(rows){const g={};rows.forEach(r=>{if(!r['Cohort']||!r['Coachee'])return;if(!g[r['Cohort']])g[r['Cohort']]=[];g[r['Cohort']].push(r);});return g;}
+
+// ── HALO 360 Files ─────────────────────────────────────────────────────────────
+// ── Exclusion list helpers ─────────────────────────────────────────────────────
+function getExcludedNames(){
+  const raw=document.getElementById('haloExclusions')?.value||'';
+  const extras=raw.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+  return new Set(['sam sample','samsample',...extras]);
+}
+function isExcluded(firstName,lastName,email){
+  const excl=getExcludedNames();
+  const full=`${firstName} ${lastName}`.trim().toLowerCase();
+  const em=(email||'').toLowerCase();
+  return excl.has(full)||
+    Array.from(excl).some(ex=>ex&&full.includes(ex))||
+    em==='samsample@demo.com'||em.includes('sample@demo');
+}
+
+function handleHalo(event, slot){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const summarySheet=wb.Sheets['Summary'];
+      if(!summarySheet){showStatus('haloStatus','✗ No Summary sheet found in '+file.name,'error');return;}
+      const rows=XLSX.utils.sheet_to_json(summarySheet,{header:1,defval:''});
+      // Row 3 (index 3) is headers, data starts row 4 (index 4)
+      const headers=rows[3];
+      const dataRows=rows.slice(4).filter(r=>!isExcluded(String(r[5]||''),String(r[6]||''),String(r[7]||'')));
+      // Detect cohort number from Project name field (col 1)
+      const projectName=dataRows[0]?dataRows[0][1]:'';
+      const cohortMatch=projectName.match(/Cohort\s+(\d+)/i);
+      const cohortNum=cohortMatch?cohortMatch[1]:'?';
+      const yearMatch=projectName.match(/(\d{4})(?!-)/)||projectName.match(/(\d{4})/);
+      const cohortYear=yearMatch?yearMatch[1]:'2026';
+      const cohortLabel=`AME Cohort ${cohortNum} ${cohortYear}`;
+
+      // Map column indices
+      const hIdx={
+        firstName:5, lastName:6, email:7, status:8,
+        selfDone:9, managerDone:10, ratersInvited:11,
+        ratersCompleted:12, ratersPct:13, minMet:14, reportReleased:15
+      };
+
+      const participants=dataRows.map(r=>({
+        firstName: r[hIdx.firstName]||'',
+        lastName:  r[hIdx.lastName]||'',
+        fullName:  ((r[hIdx.firstName]||'')+' '+(r[hIdx.lastName]||'')).trim(),
+        email:     r[hIdx.email]||'',
+        status:    r[hIdx.status]||'',
+        selfDone:  String(r[hIdx.selfDone]||'').toUpperCase()==='YES',
+        managerDone: String(r[hIdx.managerDone]||'').toUpperCase()==='YES',
+        ratersInvited: Number(r[hIdx.ratersInvited])||0,
+        ratersCompleted: Number(r[hIdx.ratersCompleted])||0,
+        ratersPct: r[hIdx.ratersPct]||'0%',
+        minMet:    String(r[hIdx.minMet]||'').toUpperCase()==='YES',
+        reportReleased: String(r[hIdx.reportReleased]||'').toLowerCase()!=='no' && r[hIdx.reportReleased]!==''&&String(r[hIdx.reportReleased]||'').toLowerCase()!=='no',
+        hasNominated: Number(r[hIdx.ratersInvited])>0,
+      }));
+
+      haloData[slot]={cohortNum, cohortLabel, participants, fileName:file.name};
+      document.getElementById(`halo${slot+1}Zone`).classList.add('loaded');
+      document.getElementById(`halo${slot+1}Label`).textContent=`✓ ${file.name} — ${cohortLabel} (${participants.length} participants)`;
+
+      const loaded=haloData.filter(Boolean).length;
+      showStatus('haloStatus',`✓ ${loaded} Halo file(s) loaded. Cohorts: ${haloData.filter(Boolean).map(h=>h.cohortLabel).join(', ')}`,'success');
+      unlock('step3Card');
+    }catch(err){showStatus('haloStatus','✗ Error reading '+file.name+': '+err.message,'error');}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── XLSX ───────────────────────────────────────────────────────────────────────
+function extractTemplateDeadlines(){
+  // Parse the uploaded template XLSX and extract existing cohort deadlines.
+  // Pattern: a row whose col A matches "AME Cohort N" is a cohort header;
+  // the NEXT non-empty row has the deadline labels in cols B-E.
+  if(!xlsxData) return {};
+  try{
+    const wb=XLSX.read(xlsxData,{type:'array'});
+    const ws=wb.Sheets['Coaching Overview'];
+    if(!ws) return {};
+    const aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+    const found={};
+    for(let i=0;i<aoa.length-1;i++){
+      const row=aoa[i];
+      const label=String(row[0]||'').trim();
+      if(/AME Cohort \d+/i.test(label)){
+        // Next row has deadlines in cols B-E (indices 1-4)
+        const drow=aoa[i+1]||[];
+        const dls=[1,2,3,4,5,6].map(ci=>{
+          const v=String(drow[ci]||'').trim();
+          // Extract just the "by ..." part from "Call N (by ...)"
+          const m=v.match(/\(([^)]+)\)/);
+          return m?m[1]:v||'by TBD';
+        });
+        found[label]=dls;
+      }
+    }
+    return found;
+  }catch(e){return {};}
+}
+
+// Template deadlines read from uploaded XLSX (populated in handleXLSX)
+let templateDeadlines={};
+
+function handleXLSX(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    xlsxData=e.target.result;
+    showStatus('xlsxStatus',`✓ Loaded ${file.name}`,'success');
+    document.getElementById('xlsxZone').classList.add('loaded');
+    document.getElementById('xlsxLabel').textContent=`✓ ${file.name}`;
+    templateDeadlines=extractTemplateDeadlines();
+    buildCohortConfig();unlock('step4Card');unlock('step5Card');
+    // Auto-run preview and show action buttons
+    generatePreview();
+    document.getElementById('generateBtn').style.display='inline-flex';
+    document.getElementById('generateBtn').disabled=false;
+    document.getElementById('emailBtn').style.display='inline-flex';
+    document.getElementById('emailBtn').disabled=false;
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── Cohort config ──────────────────────────────────────────────────────────────
+const defaultDeadlines={}; // AME cohorts — deadlines loaded from template
+function buildCohortConfig(){
+  const cohorts=Object.keys(parsedCohorts).filter(c=>c.toLowerCase().includes('ame')).sort((a,b)=>{const na=parseInt(a.match(/Cohort\s*(\d+)/i)?.[1]||0),nb=parseInt(b.match(/Cohort\s*(\d+)/i)?.[1]||0);return na-nb;});
+  const container=document.getElementById('cohortConfig');container.innerHTML='';
+  const hdr=document.createElement('div');hdr.className='cohort-row header-row';
+  hdr.innerHTML='<div>Cohort</div><div>S1 Coach</div><div>Pod 1</div><div>S2 Coach</div><div>Pod 2</div><div>S3 Coach</div><div>S4 Coach</div>';
+  container.appendChild(hdr);
+  cohorts.forEach(cohort=>{
+    const defs=templateDeadlines[cohort]||defaultDeadlines[cohort]||['by TBD','by TBD','by TBD','by TBD'];
+    cohortDeadlines[cohort]=[...defs];
+    const cn=cohort.match(/(\d+) 2026/)?.[1]||'';
+    const row=document.createElement('div');row.className='cohort-row';
+    row.innerHTML=`<div class="cohort-name">${cohort}</div>`
+      +[0,1,2,3,4,5].map(i=>`<input type="text" class="deadline-input" value="${defs[i]}" onchange="cohortDeadlines['${cohort}'][${i}]=this.value" placeholder="by MMM DD">`).join('')
+      ;
+    container.appendChild(row);
+  });
+}
+
+// ── Preview ────────────────────────────────────────────────────────────────────
+function generatePreview(){
+  document.getElementById('previewSection').style.display='block';
+  const rows2026=Object.values(parsedCohorts).flat().filter(r=>r['Cohort']?.toLowerCase().includes('ame'));
+  document.getElementById('filterNote').innerHTML=`<strong>Filters applied:</strong> Removed <strong>${removedCount.dns}</strong> DNS/DNF and <strong>${removedCount.demo}</strong> Demo Coach rows. Showing all AME cohorts.`;
+  document.getElementById('summaryGrid').innerHTML=`
+    <div class="summary-card"><div class="number">${rows2026.length}</div><div class="label">Active Managers</div></div>
+    <div class="summary-card"><div class="number">${rows2026.filter(r=>r['Session 1 Status']==='Completed').length}</div><div class="label">Coach 1 Completed</div></div>
+    <div class="summary-card"><div class="number">${rows2026.filter(r=>r['Session 1 Status']==='Booked').length}</div><div class="label">Coach 1 Booked</div></div>
+    <div class="summary-card"><div class="number">${rows2026.filter(r=>r['Session 1 Status']==='Unbooked').length}</div><div class="label">Coach 1 Unbooked</div></div>`;
+
+  const container=document.getElementById('cohortPreviews');container.innerHTML='';
+  Object.keys(parsedCohorts).filter(c=>c.toLowerCase().includes('ame')).sort((a,b)=>{const na=parseInt(a.match(/Cohort\s*(\d+)/i)?.[1]||0),nb=parseInt(b.match(/Cohort\s*(\d+)/i)?.[1]||0);return na-nb;}).forEach(cohort=>{
+    const rows=parsedCohorts[cohort],stats=computeStats(rows);
+    const div=document.createElement('div');div.className='cohort-preview';
+    div.innerHTML=`<div class="cohort-preview-header"><span>${cohort}</span><span class="badge">${rows.length} participants</span></div>
+      <table class="preview-table"><thead><tr>
+        <th>Status</th>
+        <th>Coach 1</th><th style="background:#EDE9FE;color:#5B21B6;">Pod 1</th><th>Coach 2</th><th style="background:#EDE9FE;color:#5B21B6;">Pod 2</th><th>Coach 3</th><th>Coach 4</th>
+      </tr></thead>
+      <tbody>${['Unbooked','Booked','Completed','Missed','Awaiting Coach Input'].map(s=>`
+        <tr><td><span class="pill pill-${pillClass(s)}">${s==='Awaiting Coach Input'?'Awaiting':s}</span></td>
+        <td>${stats[s][0]}</td><td>${stats[s][1]}</td><td>${stats[s][2]}</td><td>${stats[s][3]}</td><td>${stats[s][4]}</td><td>${stats[s][5]}</td></tr>`).join('')}
+      </tbody></table>`;
+    container.appendChild(div);
+  });
+
+  computedFlags=computeFlags(parsedCohorts,getReportDate());
+  renderFlagsTable(computedFlags);
+  render360Preview();
+}
+
+function pillClass(s){return{Completed:'completed',Booked:'booked',Missed:'missed','Awaiting Coach Input':'awaiting'}[s]||'unbooked';}
+function computeStats(rows){
+  const ss=['Unbooked','Booked','Completed','Missed','Awaiting Coach Input'];
+  // All 6 sessions: 1=Coach1, 2=Pod1, 3=Coach2, 4=Pod2, 5=Coach3, 6=Coach4
+  const ks=['Session 1 Status','Session 2 Status','Session 3 Status','Session 4 Status','Session 5 Status','Session 6 Status'];
+  const r={};ss.forEach(s=>{r[s]=ks.map(k=>rows.filter(x=>x[k]===s).length);});return r;
+}
+
+// ── Coaching Flags ─────────────────────────────────────────────────────────────
+// AME session mapping: Sessions 1,3,5,6 are coaching; Sessions 2,4 are pods
+// For coaching FLAGS we track all 6 sessions but label by type
+const S_STATUS=['Session 1 Status','Session 3 Status','Session 5 Status','Session 6 Status'];
+const S_DATE  =['Session 1 Date',  'Session 3 Date',  'Session 5 Date',  'Session 6 Date'];
+const S_LABEL =['1:1 Coaching Session One/ 360 Debrief','1:1 Coaching Session Two','1:1 Coaching Session Three','1:1 Coaching Session Four'];
+// Pod sessions
+const POD_STATUS=['Session 2 Status','Session 4 Status'];
+const POD_DATE  =['Session 2 Date','Session 4 Date'];
+const POD_LABEL =['Pod Session One: Navigating Difficult Conversations','Pod Session Two: Flex My Style'];
+
+function computeFlags(cohorts,reportDate){
+  const flags=[];
+  Object.entries(cohorts).forEach(([cohort,rows])=>{
+    if(!cohort.toLowerCase().includes('ame'))return;
+    const cohortNum=cohort.match(/Cohort\s*(\d+)/i)?.[1]||'?';
+    rows.forEach(row=>{
+      const statuses=S_STATUS.map(k=>(row[k]||'').trim());
+      const dates=S_DATE.map(k=>parseDate(row[k]));
+      if(statuses[0]==='Unbooked'){
+        if(!statuses.slice(1).some(s=>s==='Booked')){
+          const startDate=parseDate(row['Start Date']);
+          const days=startDate?daysDiff(reportDate,startDate):999;
+          flags.push({name:cleanName(row['Coachee']),cohort:cohortNum,session:S_LABEL[0],sessionIdx:0,note:(days<7)?'BTS to send Reminder':'BSC to send Reminder',note2:''});
+        }
+        return;
+      }
+      for(let i=0;i<3;i++){
+        const curr=statuses[i],next=statuses[i+1];
+        if((curr==='Completed'||curr==='Missed'||curr==='Awaiting Coach Input')&&next==='Unbooked'){
+          if(!statuses.slice(i+2).some(s=>s==='Booked')){
+            const days=dates[i]?daysDiff(reportDate,dates[i]):999;
+            flags.push({name:cleanName(row['Coachee']),cohort:cohortNum,session:S_LABEL[i+1],sessionIdx:i+1,note:(days<7)?'BTS to send Reminder':'BSC to send Reminder',note2:''});
+          }
+          break;
+        }
+      }
+    });
+  });
+  // Enrich note2 with 360 nomination status
+  const nominateEmails=new Set();
+  haloData.filter(Boolean).forEach(h=>{
+    const missing=getMissingFromHalo(h.cohortLabel,h.participants);
+    [...h.participants.filter(p=>!p.hasNominated),...missing].forEach(p=>nominateEmails.add((p.email||'').toLowerCase()));
+  });
+  flags.forEach(f=>{
+    const cohortRows=Object.entries(parsedCohorts).find(([k])=>{const cn=k.match(/Cohort (\d+)/i)?.[1];return cn===String(f.cohort);})?.[1]||[];
+    const match=cohortRows.find(r=>cleanName(r['Coachee'])===f.name);
+    const email=(match?match['Coachee Email']||'':'').toLowerCase().trim();
+    if(email&&nominateEmails.has(email)) f.note2='Needs to Nominate';
+  });
+  return flags;
+}
+function daysDiff(d1,d2){return Math.floor((d1-d2)/86400000);}
+function parseDate(v){if(!v)return null;const d=new Date(v);return isNaN(d)?null:d;}
+function cleanName(n){return(n||'').replace(/\s+/g,' ').trim();}
+
+// Parse a deadline string like "by Jan 15" or "by Feb 3" into a Date object.
+// Uses the report year; if the parsed date is more than 6 months in the future,
+// assume previous year (handles year-boundary cohorts like Jan deadlines run in Feb next year).
+function parseDeadlineStr(str, reportDate){
+  if(!str) return null;
+  const m = str.match(/([A-Za-z]+)\s+(\d+)/);
+  if(!m) return null;
+  const year = reportDate.getFullYear();
+  const d = new Date(`${m[1]} ${m[2]}, ${year}`);
+  if(isNaN(d)) return null;
+  // If more than 6 months in the future, it belongs to the previous year
+  if(d - reportDate > 180*86400000) d.setFullYear(year-1);
+  return d;
+}
+
+// Returns archive-flagged participants: those whose most recent unbooked/missed
+// coaching session had a deadline >90 days ago relative to reportDate.
+function computeArchiveFlags(cohorts, reportDate){
+  // Coaching session indices in cohortDeadlines array:
+  // dl[0]=Coach1, dl[1]=Pod1, dl[2]=Coach2, dl[3]=Pod2, dl[4]=Coach3, dl[5]=Coach4
+  const coachDlIdx = [0, 2, 4, 5]; // maps to S_STATUS indices 0,1,2,3
+  const archived = [];
+  Object.entries(cohorts).forEach(([cohort, rows])=>{
+    if(!cohort.toLowerCase().includes('ame')) return;
+    const dl = cohortDeadlines[cohort] || [];
+    rows.forEach(row=>{
+      const statuses = S_STATUS.map(k=>(row[k]||'').trim());
+      // Find the EARLIEST coaching session that is Unbooked or Missed
+      // (the next session the participant needs to book)
+      for(let i=0; i<=3; i++){
+        const st = statuses[i];
+        if(st==='Completed'||st==='Booked'||st==='Awaiting Coach Input') continue;
+        if(st==='Unbooked'||st==='Missed'){
+          const dlStr = dl[coachDlIdx[i]] || '';
+          const dlDate = parseDeadlineStr(dlStr, reportDate);
+          if(!dlDate) break; // no parseable deadline — skip
+          const daysLate = daysDiff(reportDate, dlDate);
+          if(daysLate >= 90){
+            archived.push({
+              name: cleanName(row['Coachee']),
+              cohort: cohort.match(/Cohort\s*(\d+)/i)?.[1]||'?',
+              session: S_LABEL[i],
+              deadline: dlStr,
+              daysLate
+            });
+          }
+          break; // only check the earliest unbooked session
+        }
+        break; // any other status (empty etc) — stop
+      }
+    });
+  });
+  // Deduplicate by name+cohort (shouldn't happen but be safe)
+  const seen = new Set();
+  return archived.filter(a=>{
+    const key = a.name+'|'+a.cohort;
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+}
+
+function renderFlagsTable(flags){
+  const container=document.getElementById('flagsTable');
+  if(!flags.length){container.innerHTML='<p style="color:#065F46;font-size:13px;padding:12px 0;">✓ No coaching flags — all participants are on track!</p>';return;}
+  const bts=flags.filter(f=>f.note.includes('BTS')).length,bsc=flags.filter(f=>f.note.includes('BSC')).length;
+  container.innerHTML=`<p style="font-size:13px;color:#4B5563;margin-bottom:12px;"><strong>${flags.length} flagged</strong> — <span class="note-bts">${bts} BTS</span> · <span class="note-bsc">${bsc} BSC</span></p>
+    <table class="flags-table"><thead><tr><th>Name</th><th>Cohort</th><th>Next Session Needed</th><th>Action</th></tr></thead>
+    <tbody>${flags.map(f=>`<tr><td>${f.name}</td><td>${f.cohort}</td><td>${f.session}</td><td class="${f.note.includes('BTS')?'note-bts':'note-bsc'}">${f.note}</td></tr>`).join('')}</tbody></table>`;
+}
+
+// ── 360 Preview ────────────────────────────────────────────────────────────────
+// ── getMissingFromHalo: find Pathways participants not in a Halo file ──────────
+function getMissingFromHalo(cohortLabel, haloParticipants){
+  const pathwaysRows=parsedCohorts[cohortLabel]||[];
+  const haloEmails=new Set(haloParticipants.map(p=>(p.email||'').toLowerCase().trim()));
+  return pathwaysRows
+    .filter(r=>{
+      const email=(r['Coachee Email']||'').toLowerCase().trim();
+      return email && !haloEmails.has(email);
+    })
+    .map(r=>({
+      fullName:cleanName(r['Coachee']),
+      email:(r['Coachee Email']||'').toLowerCase().trim(),
+      selfDone:false,managerDone:false,ratersInvited:0,
+      ratersCompleted:0,ratersPct:'N/A',minMet:false,
+      reportReleased:false,hasNominated:false,missingFromHalo:true
+    }));
+}
+
+function render360Preview(){
+  const container=document.getElementById('t360Preview');
+  const active=haloData.filter(Boolean);
+  if(!active.length){
+    container.innerHTML='<p style="color:#6B7280;font-size:13px;font-style:italic;">No Halo 360 files uploaded — 360 dashboard will be skipped.</p>';
+    return;
+  }
+
+  // Sort by cohort number
+  active.sort((a,b)=>parseInt(a.cohortNum)-parseInt(b.cohortNum));
+
+  // ── Side-by-side summary table ──
+  const fields=[
+    {label:'Total Participants',        fn:ps=>ps.length},
+    {label:'Nominated Raters',          fn:ps=>ps.filter(p=>p.hasNominated).length,       flag:false},
+    {label:'Need to Nominate',          fn:ps=>ps.filter(p=>!p.hasNominated).length,      flag:true},
+    {label:'Self Assessment Needed',    fn:ps=>ps.filter(p=>!p.selfDone).length,          flag:true},
+    {label:'Manager Rating Needed',     fn:ps=>ps.filter(p=>!p.managerDone).length,       flag:false},
+    {label:'Response Minimum Met',      fn:ps=>ps.filter(p=>p.minMet).length,             flag:false},
+    {label:'Response Minimum Not Met',  fn:ps=>ps.filter(p=>!p.minMet).length,            flag:false},
+    {label:'Report Released',           fn:ps=>ps.filter(p=>p.reportReleased).length,     flag:false},
+  ];
+
+  let tableHTML=`<table class="t360-comparison">
+    <thead><tr><th>Metric</th>${active.map(h=>`<th>${h.cohortLabel}</th>`).join('')}</tr></thead>
+    <tbody>`;
+  fields.forEach(f=>{
+    const allPs=h=>([...h.participants,...getMissingFromHalo(h.cohortLabel,h.participants)]);const vals=active.map(h=>f.fn(allPs(h)));
+    const isFlag=f.flag;
+    tableHTML+=`<tr class="${isFlag?'flag-row':''}"><td>${isFlag?'⚑ ':''} ${f.label}</td>`;
+    vals.forEach(v=>{
+      const cls=isFlag&&v>0?'t360-val-warn':'t360-val-good';
+      tableHTML+=`<td class="${v>0&&isFlag?'t360-val-warn':''}">${v}</td>`;
+    });
+    tableHTML+='</tr>';
+  });
+  tableHTML+='</tbody></table>';
+  container.innerHTML=tableHTML;
+
+  // ── Per-cohort participant detail (flagged only) ──
+  active.forEach(h=>{
+    const flagged=h.participants.filter(p=>!p.hasNominated||!p.selfDone);
+    if(!flagged.length)return;
+    let detail=`<div class="cohort-preview" style="margin-bottom:14px;">
+      <div class="cohort-preview-header"><span>${h.cohortLabel} — Action Required (${flagged.length} participants)</span></div>
+      <table class="t360-detail">
+        <thead><tr><th>Name</th><th>Self Done</th><th>Manager Done</th><th>Raters Invited</th><th>% Complete</th><th>Min Met</th><th>Report Released</th><th>Flag</th></tr></thead>
+        <tbody>`;
+    flagged.forEach(p=>{
+      const flags=[];
+      if(!p.hasNominated)flags.push(`<span class="flag-chip flag-chip-red">Needs to Nominate</span>`);
+      if(!p.selfDone)    flags.push(`<span class="flag-chip flag-chip-amber">Self Assessment Needed</span>`);
+      detail+=`<tr>
+        <td><strong>${p.fullName}</strong></td>
+        <td>${p.selfDone?'✅':'❌'}</td>
+        <td>${p.managerDone?'✅':'❌'}</td>
+        <td>${p.ratersInvited}</td>
+        <td>${p.ratersPct}</td>
+        <td>${p.minMet?'✅':'❌'}</td>
+        <td>${p.reportReleased?'✅':'❌'}</td>
+        <td>${flags.join(' ')}</td>
+      </tr>`;
+    });
+    detail+='</tbody></table></div>';
+    container.innerHTML+=detail;
+  });
+}
+
+// ── Generate Report ────────────────────────────────────────────────────────────
+// Downloads a Python script pre-filled with all report data.
+// Run: python3 ADE_Report_builder_DATE.py  → produces ADE_Engagement_Report_DATE.xlsx
+// ── Generate & Download Excel Report ─────────────────────────────────────────
+// Uses XLSX.js for data + JSZip to inject proper Excel Table XML
+// ── Generate & Download Excel Report ─────────────────────────────────────────
+// Builds xlsx entirely from scratch then merges Go-Do sheets from template.
+// Table IDs start at 24 (template uses 1-23 for Go-Do sheets) → no conflicts.
+async function generateReport(){
+  const btn=document.getElementById('generateBtn');
+  btn.disabled=true; btn.innerHTML='⏳ Building...';
+  showStatus('generateStatus','Building your formatted Excel report...','info');
+  try{
+    const rd=getReportDate();
+    const dateStr=`${rd.getMonth()+1}_${rd.getDate()}`;
+    const reportDateFmt=rd.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    const active2026=Object.keys(parsedCohorts)
+      .filter(c=>c.toLowerCase().includes('ame'))
+      .sort((a,b)=>{const na=parseInt(a.match(/Cohort\s*(\d+)/i)?.[1]||0),nb=parseInt(b.match(/Cohort\s*(\d+)/i)?.[1]||0);return na-nb;});
+    const order={}; active2026.forEach((c,i)=>order[c]=i);
+    const allRows=Object.values(parsedCohorts).flat()
+      .sort((a,b)=>(order[a.Cohort]??99)-(order[b.Cohort]??99));
+    const n=allRows.length+1;
+
+    // ── Step 1: Build sheet data (AOA) ────────────────────────────────────────
+    const RAW_HEADERS=['Region','Organisation','Company','Project','Cohort','Cohort ID','ERP ID','Pathway Name','Start Date','Coachee','Coachee Email','Coachee ID','Primary Coach','Coach Region','Archive Type','Archived at','Archive Reason','Hold Review Date','Custom Field','Maconomy ID','Category','Session 1 Name','Session 1 Status','Session 1 Date','Session 2 Name','Session 2 Status','Session 2 Date','Session 3 Name','Session 3 Status','Session 3 Date','Session 4 Name','Session 4 Status','Session 4 Date','Session 5 Name','Session 5 Status','Session 5 Date','Session 6 Name','Session 6 Status','Session 6 Date','Education','Gender','Age','Nationality','Business Region','Business Function','Product Area','Level of Leader','Role Banding','Time in Business (years)','Time in Role (years)','Time in Industry (years)','Report Tag','Broken Data'];
+    const rawAOA=[RAW_HEADERS,...allRows.map(r=>RAW_HEADERS.map(h=>r[h]||''))];
+    const coachResult=buildCoachAOA(active2026,n);
+    const t360Result=build360AOA(reportDateFmt);
+
+    // ── Step 2: Start from template zip — preserve everything unchanged ───────
+    const tmplZip=await JSZip.loadAsync(xlsxData);
+
+    // Convert AOA to worksheet XML and write directly into template zip
+    // Template layout: sheet1=Coaching Overview, sheet2=Raw Data, sheet3=360 progress
+    function aoaToWorksheetXml(aoa){
+      const XMLNS='http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+      const XMLNS_R='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+      let rows='';
+      aoa.forEach((row,ri)=>{
+        let cells='';
+        row.forEach((val,ci)=>{
+          if(val===null||val===undefined||val==='') return;
+          const addr=colLetter(ci+1)+(ri+1);
+          if(typeof val==='number'){
+            cells+=`<c r="${addr}"><v>${val}</v></c>`;
+          }else if(typeof val==='string'&&val.startsWith('=')){
+            const escaped=val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            cells+=`<c r="${addr}"><f>${escaped.slice(1)}</f></c>`;
+          }else{
+            const escaped=String(val).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            cells+=`<c r="${addr}" t="inlineStr"><is><t>${escaped}</t></is></c>`;
+          }
+        });
+        if(cells) rows+=`<row r="${ri+1}">${cells}</row>`;
+      });
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="${XMLNS}" xmlns:r="${XMLNS_R}"><sheetData>${rows}</sheetData></worksheet>`;
+    }
+
+    // Write the three rebuilt sheets
+    tmplZip.file('xl/worksheets/sheet1.xml', aoaToWorksheetXml(coachResult.aoa));
+    tmplZip.file('xl/worksheets/sheet2.xml', aoaToWorksheetXml(rawAOA));
+    tmplZip.file('xl/worksheets/sheet3.xml', aoaToWorksheetXml(t360Result.aoa));
+
+    // ── Step 3: Clear old table rels from sheet3 (had tables 1-9 from old data) ─
+    // Sheet1 (Coaching Overview) had only printerSettings — keep it, no table rels
+    // Sheet3 (360 progress) had tables 1-9 — clear those, write fresh ones
+    const NS_REL='http://schemas.openxmlformats.org/package/2006/relationships';
+    const TBL_TYPE='http://schemas.openxmlformats.org/officeDocument/2006/relationships/table';
+    const PRT_TYPE='http://schemas.openxmlformats.org/officeDocument/2006/relationships/printerSettings';
+
+    // Coaching Overview (sheet1): keep printer settings rels, remove any old table rels
+    const origCoachRels=await tmplZip.file('xl/worksheets/_rels/sheet1.xml.rels')?.async('text')||'';
+    const coachNonTableRels=(origCoachRels.match(/<Relationship[^/]*\/>/g)||[])
+      .filter(r=>!r.includes('table'));
+    let coachRelsXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${NS_REL}">${coachNonTableRels.join('')}</Relationships>`;
+
+    // 360 progress (sheet3): remove all old table rels entirely — fresh start
+    const t360RelsXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${NS_REL}"></Relationships>`;
+
+    // ── Step 4: Assign new table IDs starting at 24 (after template's 23) ─────
+    const allTables=[...coachResult.tables,...t360Result.tables];
+    allTables.forEach((t,i)=>{ t.globalId=24+i; });
+    const coachTables=allTables.filter(t=>t.sheetName==='Coaching Overview');
+    const t360Tables=allTables.filter(t=>t.sheetName==='360 progress');
+
+    // Write new table XML files
+    allTables.forEach(t=>{
+      tmplZip.file(`xl/tables/table${t.globalId}.xml`, buildTableXml(t.globalId,t.name,t.ref,t.cols));
+    });
+
+    // ── Step 5: Build rels for sheet1 (Coaching Overview) ────────────────────
+    // Keep existing non-table rels (printer settings), add new table rels
+    const coachExistingMaxRid=coachNonTableRels.reduce((max,r)=>{
+      const m=r.match(/Id="rId(\d+)"/); return m?Math.max(max,parseInt(m[1])):max;
+    },0);
+    let coachRidNum=coachExistingMaxRid+1;
+    const coachRidMap={};
+    coachTables.forEach(t=>{ coachRidMap[t.globalId]=`rId${coachRidNum++}`; });
+    const coachNewRelEntries=coachTables.map(t=>`<Relationship Id="${coachRidMap[t.globalId]}" Type="${TBL_TYPE}" Target="../tables/table${t.globalId}.xml"/>`).join('');
+    coachRelsXml=coachRelsXml.replace('</Relationships>',coachNewRelEntries+'</Relationships>');
+    tmplZip.file('xl/worksheets/_rels/sheet1.xml.rels', coachRelsXml);
+
+    // ── Step 6: Build rels for sheet3 (360 progress) — fresh ─────────────────
+    let t360RidNum=1;
+    const t360RidMap={};
+    t360Tables.forEach(t=>{ t360RidMap[t.globalId]=`rId${t360RidNum++}`; });
+    const t360RelEntries=t360Tables.map(t=>`<Relationship Id="${t360RidMap[t.globalId]}" Type="${TBL_TYPE}" Target="../tables/table${t.globalId}.xml"/>`).join('');
+    const finalT360Rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${NS_REL}">${t360RelEntries}</Relationships>`;
+    tmplZip.file('xl/worksheets/_rels/sheet3.xml.rels', finalT360Rels);
+
+    // ── Step 7: Inject tablePart refs into sheet XML ──────────────────────────
+    if(coachTables.length){
+      let wsXml=await tmplZip.file('xl/worksheets/sheet1.xml').async('text');
+      const parts=coachTables.map(t=>`<tablePart r:id="${coachRidMap[t.globalId]}"/>`).join('');
+      wsXml=wsXml.replace('</worksheet>',`<tableParts count="${coachTables.length}">${parts}</tableParts></worksheet>`);
+      tmplZip.file('xl/worksheets/sheet1.xml',wsXml);
+    }
+    if(t360Tables.length){
+      let wsXml=await tmplZip.file('xl/worksheets/sheet3.xml').async('text');
+      const parts=t360Tables.map(t=>`<tablePart r:id="${t360RidMap[t.globalId]}"/>`).join('');
+      wsXml=wsXml.replace('</worksheet>',`<tableParts count="${t360Tables.length}">${parts}</tableParts></worksheet>`);
+      tmplZip.file('xl/worksheets/sheet3.xml',wsXml);
+    }
+
+    // ── Step 8: Add new table Content-Types ──────────────────────────────────
+    let ct=await tmplZip.file('[Content_Types].xml').async('text');
+    allTables.forEach(t=>{
+      const entry=`<Override PartName="/xl/tables/table${t.globalId}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml"/>`;
+      if(!ct.includes(`table${t.globalId}.xml`)) ct=ct.replace('</Types>',entry+'</Types>');
+    });
+    tmplZip.file('[Content_Types].xml',ct);
+
+    // ── Step 9: Generate and download ────────────────────────────────────────
+    const finalBytes=await tmplZip.generateAsync({
+      type:'uint8array',
+      mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      compression:'DEFLATE'
+    });
+    const blob=new Blob([finalBytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`AME_Engagement_Report_${dateStr}.xlsx`;
+    a.click(); URL.revokeObjectURL(url);
+
+    showStatus('generateStatus',`✓ Downloaded: AME_Engagement_Report_${dateStr}.xlsx`,'success');
+    btn.innerHTML='✓ Downloaded!'; btn.disabled=false;
+  }catch(err){
+    showStatus('generateStatus','✗ Error: '+err.message,'error');
+    console.error(err);
+    btn.innerHTML='⬇️ Download Updated Report'; btn.disabled=false;
+  }
+}
+
+
+// ── Table XML builder ─────────────────────────────────────────────────────────
+function buildTableXml(id,name,ref,cols){
+  const colXml=cols.map((c,i)=>`<tableColumn id="${i+1}" name="${escXml(c)}"/>`).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`+
+    `<table xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" id="${id}" name="${escXml(name)}" displayName="${escXml(name)}" ref="${ref}" totalsRowShown="0">`+
+    `<autoFilter ref="${ref}"/>`+
+    `<tableColumns count="${cols.length}">${colXml}</tableColumns>`+
+    `<tableStyleInfo name="TableStyleMedium2" showFirstColumn="0" showLastColumn="0" showRowStripes="1" showColumnStripes="0"/>`+
+    `</table>`;
+}
+function escXml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+async function injectSheetRels(zip,sheetIdx,sheetTables,allTables){
+  if(!sheetTables.length) return;
+  const relsPath=`xl/worksheets/_rels/sheet${sheetIdx}.xml.rels`;
+  const ns='http://schemas.openxmlformats.org/package/2006/relationships';
+  const tblType='http://schemas.openxmlformats.org/officeDocument/2006/relationships/table';
+  let existingRels=[];
+  if(zip.file(relsPath)){
+    const existing=await zip.file(relsPath).async('text');
+    existingRels=[...existing.matchAll(/<Relationship[^/]*\/>/g)].map(m=>m[0]);
+  }
+  const usedNums=existingRels.map(r=>{const m=r.match(/Id="rId(\d+)"/);return m?parseInt(m[1]):0;});
+  let nextNum=(usedNums.length?Math.max(...usedNums):0)+1;
+  const newRels=sheetTables.map(t=>{
+    t._rId=`rId${nextNum++}`;
+    const globalIdx=allTables.indexOf(t)+1;
+    return `<Relationship Id="${t._rId}" Type="${tblType}" Target="../tables/table${globalIdx}.xml"/>`;
+  });
+  const allRelsXml=[...existingRels,...newRels].join('');
+  zip.file(relsPath,`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${ns}">${allRelsXml}</Relationships>`);
+}
+
+async function injectTableParts(zip,sheetIdx,sheetTables,allTables){
+  if(!sheetTables.length) return;
+  const wsPath=`xl/worksheets/sheet${sheetIdx}.xml`;
+  let wsXml=await zip.file(wsPath).async('text');
+  if(!wsXml.includes('xmlns:r=')){
+    wsXml=wsXml.replace(/(<worksheet)( |>)/,'$1 xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"$2');
+  }
+  const parts=sheetTables.map(t=>`<tablePart r:id="${t._rId}"/>`).join('');
+  wsXml=wsXml.replace('</worksheet>',`<tableParts count="${sheetTables.length}">${parts}</tableParts></worksheet>`);
+  zip.file(wsPath,wsXml);
+}
+
+
+// ── Coaching Overview AOA + table definitions ─────────────────────────────────
+function buildCoachAOA(active2026,rawRows){
+  const aoa=[], tables=[];
+  let r=0;
+  const statOrder=['Unbooked','Booked','Completed','Missed'];
+  // AME: S1=Coach1(W), S2=Pod1(Z), S3=Coach2(AC), S4=Pod2(AF), S5=Coach3(AI), S6=Coach4(AL)
+  const sCols=['W','Z','AC','AF','AI','AL'];
+  const sLabels=['Coach 1','Pod 1','Coach 2','Pod 2','Coach 3','Coach 4'];
+  const tid=[23]; function nextTid(){tid[0]++;return `AMETbl${tid[0]}`;}
+
+  active2026.forEach(cohort=>{
+    const dl=cohortDeadlines[cohort]||['by TBD','by TBD','by TBD','by TBD','by TBD','by TBD'];
+    while(aoa.length<=r) aoa.push([]); aoa[r][0]=cohort; r++;
+    while(aoa.length<=r) aoa.push([]);
+    aoa[r]=['',`Coach 1 (${dl[0]})`,`Pod 1 (${dl[1]})`,`Coach 2 (${dl[2]})`,`Pod 2 (${dl[3]})`,`Coach 3 (${dl[4]})`,`Coach 4 (${dl[5]})`];
+    const tblStart=r+1;
+    statOrder.forEach((stat,si)=>{
+      r++;
+      while(aoa.length<=r) aoa.push([]);
+      aoa[r]=[stat,...sCols.map(sc=>`=COUNTIFS('Raw Data'!E1:E${rawRows},"${cohort}",'Raw Data'!${sc}1:${sc}${rawRows},"${stat}")`)]
+    });
+    tables.push({sheetName:'Coaching Overview',name:nextTid(),ref:`A${tblStart}:G${tblStart+4}`,cols:['',`Coach 1 (${dl[0]})`,`Pod 1 (${dl[1]})`,`Coach 2 (${dl[2]})`,`Pod 2 (${dl[3]})`,`Coach 3 (${dl[4]})`,`Coach 4 (${dl[5]})`]});
+    r+=2;
+  });
+
+  // Coaching Engagement Flag
+  let fr=0;
+  while(aoa.length<=fr) aoa.push([]); aoa[fr][6]='Coaching Engagement Flag'; fr++;
+  while(aoa.length<=fr) aoa.push([]);
+  aoa[fr][6]='Name'; aoa[fr][7]='Cohort'; aoa[fr][8]='Session'; aoa[fr][9]='Action'; aoa[fr][10]='Note';
+  const flagStart=fr+1;
+  const flagRows=computedFlags.length>0?computedFlags:[{name:'',cohort:'',session:'',note:'',note2:''}];
+  flagRows.forEach((f,i)=>{const row=fr+1+i; while(aoa.length<=row) aoa.push([]); aoa[row][6]=f.name; aoa[row][7]=parseInt(f.cohort||0); aoa[row][8]=f.session; aoa[row][9]=f.note; aoa[row][10]=f.note2||'';});
+  tables.push({sheetName:'Coaching Overview',name:nextTid(),ref:`G${flagStart}:K${flagStart+flagRows.length-1+1}`,cols:['Name','Cohort','Session','Status','Note']});
+  fr=flagStart+flagRows.length+2;
+
+  // 360 Engagement Flag
+  while(aoa.length<=fr) aoa.push([]); aoa[fr][6]='360 Engagement Flag'; fr++;
+  while(aoa.length<=fr) aoa.push([]);
+  aoa[fr][6]='Engagement Flag'; aoa[fr][7]='Cohort'; aoa[fr][8]='Response'; aoa[fr][9]='Notes';
+  const t360Start=fr+1;
+  const t360Rows=flag360Data.length>0?flag360Data:[{name:'',cohort:'',response:''}];
+  t360Rows.forEach((f,i)=>{const row=fr+1+i; while(aoa.length<=row) aoa.push([]); aoa[row][6]=f.name; aoa[row][7]=parseInt(f.cohort||0); aoa[row][8]=f.response;});
+  tables.push({sheetName:'Coaching Overview',name:nextTid(),ref:`G${t360Start}:J${t360Start+t360Rows.length-1+1}`,cols:['Engagement Flag','Cohort','Response','Notes']});
+
+  return{aoa,tables};
+}
+
+// ── 360 Progress AOA + table definitions ─────────────────────────────────────
+function build360AOA(reportDateFmt){
+  const aoa=[], tables=[];
+  let r=0;
+  const tid=[200]; function nextTid(){tid[0]++;return `AMETbl${tid[0]}`;}
+  const active=haloData.filter(Boolean).sort((a,b)=>parseInt(a.cohortNum)-parseInt(b.cohortNum));
+
+  aoa[r]=['360 Assessment Progress Dashboard — AME 2026']; r++;
+  aoa[r]=[`Report Date: ${reportDateFmt}`]; r+=2;
+
+  if(!active.length) return{aoa,tables};
+
+  const enriched=active.map(h=>({...h,allParticipants:[...h.participants,...getMissingFromHalo(h.cohortLabel,h.participants)]}));
+
+  aoa[r]=['SUMMARY']; r++;
+  const sumHdr=r;
+  aoa[r]=['Metric',...enriched.map(h=>h.cohortLabel)]; r++;
+  const fields=[
+    ['Total Participants',    ps=>ps.length],
+    ['Nominated Raters',      ps=>ps.filter(p=>p.hasNominated).length],
+    ['Need to Nominate',      ps=>ps.filter(p=>!p.hasNominated).length],
+    ['Self Assessment Needed',ps=>ps.filter(p=>!p.selfDone).length],
+    ['Manager Rating Needed', ps=>ps.filter(p=>!p.managerDone).length],
+    ['Response Minimum Met',  ps=>ps.filter(p=>p.minMet).length],
+    ['Response Min Not Met',  ps=>ps.filter(p=>!p.minMet).length],
+    ['Report Released',       ps=>ps.filter(p=>p.reportReleased).length],
+  ];
+  fields.forEach(([l,fn])=>{aoa[r]=[l,...enriched.map(h=>fn(h.allParticipants))]; r++;});
+  tables.push({sheetName:'360 progress',name:nextTid(),ref:`A${sumHdr+1}:${colLetter(enriched.length+1)}${r}`,cols:['Metric',...enriched.map(h=>h.cohortLabel)]});
+  r+=2;
+
+  enriched.forEach(h=>{
+    const flagged=h.allParticipants.filter(p=>!p.hasNominated||!p.selfDone);
+    if(!flagged.length) return;
+    aoa[r]=[`${h.cohortLabel} — Participant Detail (Action Required)`]; r++;
+    const detHdr=r;
+    aoa[r]=['Name','Email','Self ✓','Manager ✓','Raters Invited','% Complete','Min Met','Report Released','Action Required']; r++;
+    flagged.forEach(p=>{
+      const acts=[];
+      if(!p.hasNominated) acts.push(p.missingFromHalo?'Needs to Nominate (not in Halo)':'Needs to Nominate');
+      else if(!p.selfDone) acts.push('Self Assessment Needed');
+      aoa[r]=[p.fullName,p.email,p.selfDone?'YES':'NO',p.managerDone?'YES':'NO',p.ratersInvited,p.ratersPct,p.minMet?'YES':'NO',p.reportReleased?'YES':'NO',acts.join(', ')]; r++;
+    });
+    tables.push({sheetName:'360 progress',name:nextTid(),ref:`A${detHdr+1}:I${r}`,cols:['Name','Email','Self ✓','Manager ✓','Raters Invited','% Complete','Min Met','Report Released','Action Required']});
+    r+=2;
+  });
+  return{aoa,tables};
+}
+
+function colLetter(n){let s='';while(n>0){s=String.fromCharCode(64+(n%26||26))+s;n=Math.floor((n-1)/26);}return s;}
+
+// ── Email Composer ─────────────────────────────────────────────────────────────
+let flag360Data=[];
+
+
+function openEmailComposer(){
+  // Pre-populate from 360 data — participants needing to nominate
+  flag360Data=[];
+  haloData.filter(Boolean).forEach(h=>{
+    h.participants.filter(p=>!p.hasNominated).forEach(p=>{
+      flag360Data.push({name:p.fullName,cohort:h.cohortNum,response:'Needs to Nominate',notes:''});
+    });
+    h.participants.filter(p=>p.hasNominated&&!p.selfDone).forEach(p=>{
+      flag360Data.push({name:p.fullName,cohort:h.cohortNum,response:'Needs to complete self survey',notes:''});
+    });
+  });
+  // If no halo data, fall back to coaching flag names from session 1
+  if(!flag360Data.length){
+    flag360Data=computedFlags.filter(f=>f.sessionIdx===0).map(f=>({name:f.name,cohort:f.cohort,response:'Needs to Nominate',notes:''}));
+  }
+
+  const rd=getReportDate();
+  document.getElementById('emailSubject').textContent=`AME Engagement Report ${rd.getMonth()+1}.${String(rd.getDate()).padStart(2,'0')}`;
+  render360Editor();renderEmailPreview();
+  document.getElementById('emailComposer').style.display='block';
+  document.getElementById('emailComposer').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function render360Editor(){
+  const container=document.getElementById('flag360Rows');container.innerHTML='';
+  flag360Data.forEach((row,i)=>{
+    const div=document.createElement('div');div.className='flag-360-row';
+    div.innerHTML=`
+      <input type="text" value="${row.name}" onchange="flag360Data[${i}].name=this.value;renderEmailPreview()" placeholder="Name">
+      <input type="text" value="${row.cohort}" onchange="flag360Data[${i}].cohort=this.value;renderEmailPreview()" placeholder="Cohort">
+      <select onchange="flag360Data[${i}].response=this.value;renderEmailPreview()">
+        <option value="Needs to Nominate" ${row.response==='Needs to Nominate'?'selected':''}>Needs to Nominate</option>
+        <option value="Needs to complete self survey" ${row.response==='Needs to complete self survey'?'selected':''}>Needs to complete self survey</option>
+        <option value="Response Minimum Not Reached" ${row.response==='Response Minimum Not Reached'?'selected':''}>Response Min Not Reached</option>
+        <option value="Report Not Released" ${row.response==='Report Not Released'?'selected':''}>Report Not Released</option>
+      </select>
+      <button class="btn-remove-flag" onclick="remove360Row(${i})">✕</button>`;
+    container.appendChild(div);
+  });
+}
+function add360Row(){flag360Data.push({name:'',cohort:'',response:'Needs to Nominate',notes:''});render360Editor();renderEmailPreview();}
+function remove360Row(i){flag360Data.splice(i,1);render360Editor();renderEmailPreview();}
+
+// ── Email hyperlink constants ──────────────────────────────────────────────────
+const MOMENTA_URL='https://degreed.com/develop?ssoprovider=bostonscientific#/user/academies/view/1486/content';
+const T360_URL='https://bsc.btsmomenta.com/#/deep-link/U2FsdGVkX1%2FGunC%2BcOESzqIntuMThZ2m8SFM2dRbn4v3dlZ2w1RnHtzs3nmDb%2FonTtXoF7cGI1NBaqR7sULBt3OAyg%3D%3D';
+const MOMENTA_LINK=`<a href="${MOMENTA_URL}">Momenta through Degreed</a>`;
+const T360_LINK=`<a href="${T360_URL}">Complete Your 360 Assessment</a>`;
+
+function renderEmailPreview(){
+  // BSC flags only for coaching table and Book S1 / Book Next templates
+  const bscFlags=computedFlags.filter(f=>f.note.includes('BSC'));
+  // ALL flags (BSC + BTS) for nominate buckets since nomination is all-cohort
+  const allFlags=computedFlags;
+
+  // Build nominate set from 360 flag editor data
+  const nominateNames=new Set(flag360Data.filter(f=>f.response==='Needs to Nominate').map(f=>f.name));
+  const selfNames=new Set(flag360Data.filter(f=>f.response==='Needs to complete self survey').map(f=>f.name));
+  const includeSelf=document.getElementById('selfAssessToggle')?.checked;
+
+  // ── Archive flags (3 months past deadline, still unbooked/missed) ──────────
+  const archiveFlags = computeArchiveFlags(parsedCohorts, getReportDate());
+
+  // ── Four buckets ────────────────────────────────────────────────────────────
+  // 1. Book S1 only (BSC, session #1, NOT needing to nominate)
+  const s1BookOnly=bscFlags.filter(f=>f.sessionIdx===0&&!nominateNames.has(f.name));
+  // 2. Book Next session (BSC, session 2-4)
+  const sNextBook=bscFlags.filter(f=>f.sessionIdx>0);
+  // 3. S1 + Nominate combined (ANY cohort, session #1, needs to nominate)
+  const s1NominateAndBook=allFlags.filter(f=>f.sessionIdx===0&&nominateNames.has(f.name));
+  // 4. Just Nominate (ANY cohort, needs to nominate, NOT already in s1NominateAndBook)
+  const alreadyCoveredByNomBook=new Set(s1NominateAndBook.map(f=>f.name));
+  const justNominate=flag360Data.filter(f=>
+    f.response==='Needs to Nominate'&&!alreadyCoveredByNomBook.has(f.name));
+  // 5. Self assessment (toggle-gated)
+  const selfOnly=flag360Data.filter(f=>f.response==='Needs to complete self survey');
+
+  const greeting=nextGreeting();
+
+  // Coaching table: BSC flags only (cohorts 1-3 typically)
+  const coachingRows=bscFlags.length>0
+    ?bscFlags.map(f=>`<tr${f.note2?` style="background:#FEF9C3"`:''}><td>${f.name}</td><td>${f.cohort}</td><td>${f.session}</td><td>${f.note}</td><td>${f.note2||''}</td></tr>`).join('')
+    :'<tr><td colspan="5" style="color:#6B7280;font-style:italic;">No BSC coaching flags this period.</td></tr>';
+
+  const hasHighlight=bscFlags.some(f=>f.note2==='Needs to Nominate'||false); // highlighted rows exist
+  const highlightNote=bscFlags.some(f=>f.note2)
+    ?`<p style="font-size:13px;color:#92400E;"><em>The highlight refers to a participant who is over a month behind in their coaching journey. We would recommend reaching out to them.</em></p>`
+    :'';
+
+  let sections='';
+
+  // Template 0: Archive recommendation (3 months past deadline, first in email)
+  if(archiveFlags.length>0){
+    const archiveNames = archiveFlags.map(a=>`${a.name} (Cohort ${a.cohort})`).join(', ');
+    sections+=`<p><strong>⚠ Archive Recommendation</strong></p>
+    <p>Please personally reach out to the following participants as they have not attended a session in 3 months:</p>
+    <p><strong>${archiveNames}</strong></p>
+    <p>We recommend archiving their journey in Momenta at this time. If the participant would like to continue, please let us know and we can explore options.</p>`;
+  }
+
+  // Template 1: Book Session 1 only
+  if(s1BookOnly.length>0){
+    sections+=`<p>Here is recommended text to send to the above participants who need to schedule their <strong>1:1 Coaching Session One / 360 Debrief</strong>.</p>
+    <div class="quoted">
+      <p>"Hello,</p>
+      <p>BTS has let us know that you have yet to book your first session with your coach. Please log into ${MOMENTA_LINK} then navigate to the bar on the left menu and select the "My Coaching" and book your first coaching session.</p>
+      <p>In order to graduate AME you must attend all four coaching sessions and both pod sessions."</p>
+    </div>`;
+  }
+
+  // Template 2: Book Next Session (2-4)
+  if(sNextBook.length>0){
+    sections+=`<p>Here is recommended text to send to the above participants who need to book their <strong>next coaching session</strong>.</p>
+    <div class="quoted">
+      <p>"Hello,</p>
+      <p>BTS has let us know that you have yet to book your next session with your coach. Please log into ${MOMENTA_LINK} then navigate to the bar on the left menu and select the "My Coaching" and book your next coaching session.</p>
+      <p>In order to graduate AME you must attend all four coaching sessions and both pod sessions."</p>
+    </div>`;
+  }
+
+  // Template 3: Book Session 1 + Nominate raters (combined)
+  if(s1NominateAndBook.length>0){
+    const names=s1NominateAndBook.map(f=>f.name).join(' and ');
+    sections+=`<p>Here is recommended text to send to the above participants who have yet to nominate their raters for their 360 report and book their 360 Debrief — <strong>${names}</strong>.</p>
+    <div class="quoted">
+      <p>"Hello,</p>
+      <p>BTS has let us know that you have not yet nominated your feedback providers for your 360 in the Advanced Manager Experience. Nominating your raters is a required step and ensures you receive a comprehensive report to support your development in AME.</p>
+      <p><strong>ACTION REQUIRED:</strong> Please log into ${MOMENTA_LINK} as soon as possible.</p>
+      <p>Once logged in:</p>
+      <ul>
+        <li>Navigate to <strong>My Journey</strong></li>
+        <li>Click <strong>Resume</strong> next to "${T360_LINK}"</li>
+        <li>Select <strong>Access your 360 Survey and Report</strong></li>
+        <li>Follow the instructions to nominate your raters</li>
+      </ul>
+      <p>It is important that you complete this step as soon as possible so your feedback providers have adequate time to respond and your report can be generated in time for your debrief. You must have your 360 report before your first session with your coach.</p>
+      <p>If you experience any technical difficulties, please contact <a href="mailto:bscsupport@bts.com">bscsupport@bts.com</a> and <a href="mailto:btsassessmentsnam@halo-feedback.com">btsassessmentsnam@halo-feedback.com</a> for assistance.</p>
+      <p>BTS has also let us know that you have yet to book your first session with your coach. Please log into ${MOMENTA_LINK} then navigate to the bar on the left menu and select the "My Coaching" and book your first coaching session.</p>
+      <p>In order to graduate AME you must attend all four coaching sessions.</p>
+      <p><strong>NOTE:</strong> A report will be generated when your self-assessment has been completed, your manager has also completed the survey, and you have two rater groups with enough responses to be displayed in the report (minimum of 3 responses per group)."</p>
+    </div>`;
+  }
+
+  // Template 4: Just Nominate raters (any cohort, not already in Book+Nominate)
+  if(justNominate.length>0){
+    sections+=`<p>Here is recommended text to send to the above participants who need to nominate their raters.</p>
+    <div class="quoted">
+      <p>"Hello,</p>
+      <p>BTS let us know that you have yet to nominate your raters for your 360 survey. As part of the Advanced Manager Experience, your 360-degree feedback is a critical component of your development journey. To ensure you receive a comprehensive and meaningful report, you must first nominate your raters.</p>
+      <p><strong>Action Required:</strong><br>
+      Please log into ${MOMENTA_LINK} and complete your rater nominations as soon as possible. This step is essential to allow your selected raters enough time to provide thoughtful feedback.</p>
+      <p>Once you have submitted your nominations, we strongly encourage you to reach out to your raters directly to ask them to prioritize completing your feedback. A personal message can significantly improve response rates. You may use the template below:</p>
+      <div class="quoted" style="margin:12px 0;background:#F3F4F6;">
+        <p>"Hello colleagues,</p>
+        <p>As you may know, I'm going through the process of collecting 360-degree feedback. I want to ensure that I receive enough responses to receive a full report. BTS is keeping my survey open past the deadline. If you have already taken the time to complete your feedback, I appreciate it. If you have not yet done so, please look for an email from "Boston Scientific 360 Surveys btsassessmentsnam@halo-feedback.com" and complete it as soon as possible. If you can't find the email with the link, please reach out for technical support by emailing btsassessmentsnam@halo-feedback.com.</p>
+        <p>Thank you."</p>
+      </div>
+      <p>Your timely action ensures you receive robust, well-rounded feedback that will directly support your growth and effectiveness as a leader.</p>
+      <p>Please let me know if you have any questions."</p>
+    </div>`;
+  }
+
+  // Template 5: Self Assessment (toggle-gated)
+  if(includeSelf&&selfOnly.length>0){
+    const names=selfOnly.map(f=>f.name).join(', ');
+    sections+=`<p>Here is recommended text to send to the above participants who need to complete their self-assessment — <strong>${names}</strong>.</p>
+    <div class="quoted">
+      <p>"Hello,</p>
+      <p>BTS has let us know that you have not yet completed your self-survey for AME. This step is required before your 360 report can be published.</p>
+      <p><strong>ACTION REQUIRED:</strong> Please log into ${MOMENTA_LINK} as soon as possible.</p>
+      <p>Once logged in:</p>
+      <ul>
+        <li>Navigate to <strong>My Journey</strong></li>
+        <li>Click <strong>Resume</strong> next to "${T360_LINK}"</li>
+        <li>Select <strong>Access your 360 Survey and Report</strong></li>
+        <li>Complete and submit your self-survey</li>
+      </ul>
+      <p>Your self-assessment is a required component of the 360 process and must be submitted before your report can be generated and shared.</p>
+      <p>If you experience any technical difficulties, please contact <a href="mailto:bscsupport@bts.com">bscsupport@bts.com</a> and <a href="mailto:btsassessmentsnam@halo-feedback.com">btsassessmentsnam@halo-feedback.com</a> for assistance.</p>
+      <p><strong>NOTE:</strong> A report will be generated when your self-assessment has been completed, your manager has also completed the survey, and you have two rater groups with enough responses to be displayed in the report (minimum of 3 responses per group)."</p>
+    </div>`;
+  }
+
+  document.getElementById('emailPreviewBody').innerHTML=`
+    <p>${greeting}</p>
+    <p>Here is the most recent AME engagement report attached. Please see the 360 engagement flags and recommended communications as well.</p>
+    <table class="email-tbl"><thead><tr><th>Coaching Engagement Flag</th><th>Cohort</th><th>Session</th><th>Status</th><th>Note</th></tr></thead><tbody>${coachingRows}</tbody></table>
+    ${highlightNote}
+    ${sections}
+    <p>Please let me know if you have any questions.</p>
+    <p>Thank you.</p>
+    <div class="sig">All the best,<br><strong>Elya Bottiger</strong> Program Manager<br>Mobile: +1.203.361.8635<br>200 South Wacker, Suite 800 | Chicago, IL 60606<br><br>
+    <span style="font-size:11px;color:#6B7280;">Visit the new <a href="https://www.bts.com">www.bts.com</a> for latest research, case studies and tools to help leaders build the future of their business.</span></div>`;
+}
+
+
+function copyEmail(){
+  const body=document.getElementById('emailPreviewBody');
+  const blob=new Blob([body.innerHTML],{type:'text/html'});
+  const clipItem=new ClipboardItem({'text/html':blob});
+  navigator.clipboard.write([clipItem]).then(()=>{setCopied();}).catch(()=>{
+    const range=document.createRange();range.selectNodeContents(body);
+    const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);
+    document.execCommand('copy');sel.removeAllRanges();setCopied();
+  });
+}
+function setCopied(){const btn=document.getElementById('copyBtn');btn.textContent='✓ Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copy Email';btn.classList.remove('copied');},2500);}
+
+function showStatus(id,msg,type){const el=document.getElementById(id);el.textContent=msg;el.className='status-bar'+(type?' '+type:'');el.style.display=msg?'block':'none';}
+function unlock(id){const el=document.getElementById(id);el.style.opacity='1';el.style.pointerEvents='auto';}
+</script>
+</body>
+</html>
