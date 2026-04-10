@@ -586,8 +586,11 @@ function handleHalo(event, slot){
 // ── XLSX ───────────────────────────────────────────────────────────────────────
 function extractTemplateDeadlines(){
   // Parse the uploaded template XLSX and extract existing cohort deadlines.
-  // Pattern: a row whose col A matches "AME Cohort N" is a cohort header;
-  // the NEXT non-empty row has the deadline labels in cols B-E.
+  // Handles two cohort label formats:
+  //   "AME Cohort N YYYY"      (our generated output)
+  //   "Cohort CN Mon YYYY"     (existing client report, e.g. "Cohort C1 Jan 2026")
+  // The deadline row immediately follows the cohort label row, cols B-G (indices 1-6).
+  // Deadline cell format: "Call 1 (Feb 17-Mar 10)" or "Pod 1 (Apr)" → extract inside parens.
   if(!xlsxData) return {};
   try{
     const wb=XLSX.read(xlsxData,{type:'array'});
@@ -598,17 +601,25 @@ function extractTemplateDeadlines(){
     for(let i=0;i<aoa.length-1;i++){
       const row=aoa[i];
       const label=String(row[0]||'').trim();
-      if(/AME Cohort \d+/i.test(label)){
-        // Next row has deadlines in cols B-E (indices 1-4)
-        const drow=aoa[i+1]||[];
-        const dls=[1,2,3,4,5,6].map(ci=>{
-          const v=String(drow[ci]||'').trim();
-          // Extract just the "by ..." part from "Call N (by ...)"
-          const m=v.match(/\(([^)]+)\)/);
-          return m?m[1]:v||'by TBD';
-        });
-        found[label]=dls;
+      let cohortKey=null;
+      // Match "AME Cohort 1 2026" style (our own output)
+      const m1=label.match(/AME Cohort\s+(\d+)\s+(\d{4})/i);
+      if(m1) cohortKey=`AME Cohort ${m1[1]} ${m1[2]}`;
+      // Match "Cohort C1 Jan 2026" or "Cohort C11 Oct 2025" style (client template)
+      if(!cohortKey){
+        const m2=label.match(/Cohort\s+C(\d+)\s+\w+\s+(\d{4})/i);
+        if(m2) cohortKey=`AME Cohort ${m2[1]} ${m2[2]}`;
       }
+      if(!cohortKey) continue;
+      // Deadline labels are in the NEXT row, cols B-G (indices 1-6)
+      const drow=aoa[i+1]||[];
+      const dls=[1,2,3,4,5,6].map(ci=>{
+        const v=String(drow[ci]||'').trim();
+        // Extract content inside parentheses: "Call 1 (Feb 17-Mar 10)" → "Feb 17-Mar 10"
+        const m=v.match(/\(([^)]+)\)/);
+        return m?m[1].trim():v||'by TBD';
+      });
+      found[cohortKey]=dls;
     }
     return found;
   }catch(e){return {};}
@@ -646,7 +657,7 @@ function buildCohortConfig(){
   hdr.innerHTML='<div>Cohort</div><div>S1 Coach</div><div>Pod 1</div><div>S2 Coach</div><div>Pod 2</div><div>S3 Coach</div><div>S4 Coach</div>';
   container.appendChild(hdr);
   cohorts.forEach(cohort=>{
-    const defs=templateDeadlines[cohort]||defaultDeadlines[cohort]||['by TBD','by TBD','by TBD','by TBD'];
+    const defs=templateDeadlines[cohort]||defaultDeadlines[cohort]||['by TBD','by TBD','by TBD','by TBD','by TBD','by TBD'];
     cohortDeadlines[cohort]=[...defs];
     const cn=cohort.match(/(\d+) 2026/)?.[1]||'';
     const row=document.createElement('div');row.className='cohort-row';
@@ -754,19 +765,43 @@ function daysDiff(d1,d2){return Math.floor((d1-d2)/86400000);}
 function parseDate(v){if(!v)return null;const d=new Date(v);return isNaN(d)?null:d;}
 function cleanName(n){return(n||'').replace(/\s+/g,' ').trim();}
 
-// Parse a deadline string like "by Jan 15" or "by Feb 3" into a Date object.
-// Uses the report year; if the parsed date is more than 6 months in the future,
-// assume previous year (handles year-boundary cohorts like Jan deadlines run in Feb next year).
+// Parse a deadline string into a Date object. Handles multiple formats:
+//   "by Jan 15"          → Jan 15 (legacy style)
+//   "Feb 17-Mar 10"      → Mar 10 (AME range style — use END date)
+//   "Mar 23-Apr 17"      → Apr 17
+//   "Apr"                → Apr 30 (month only — use last day)
+//   "Jun 1-19"           → Jun 19 (same-month range)
+// Uses the report year; rolls back one year if result is >6 months in the future.
 function parseDeadlineStr(str, reportDate){
-  if(!str) return null;
-  const m = str.match(/([A-Za-z]+)\s+(\d+)/);
-  if(!m) return null;
+  if(!str||str==='by TBD'||str==='TBD') return null;
   const year = reportDate.getFullYear();
-  const d = new Date(`${m[1]} ${m[2]}, ${year}`);
-  if(isNaN(d)) return null;
-  // If more than 6 months in the future, it belongs to the previous year
-  if(d - reportDate > 180*86400000) d.setFullYear(year-1);
-  return d;
+  function finalize(d){
+    if(!d||isNaN(d)) return null;
+    if(d - reportDate > 180*86400000) d.setFullYear(d.getFullYear()-1);
+    return d;
+  }
+  // "by Jan 15" or "by Feb 3"
+  const mBy = str.match(/by\s+([A-Za-z]+)\s+(\d+)/i);
+  if(mBy) return finalize(new Date(`${mBy[1]} ${mBy[2]}, ${year}`));
+  // "Feb 17-Mar 10" or "Mar 23-Apr 17" (cross-month range — use END month+day)
+  const mRange = str.match(/[A-Za-z]+\s+\d+\s*[-–]\s*([A-Za-z]+)\s+(\d+)/);
+  if(mRange) return finalize(new Date(`${mRange[1]} ${mRange[2]}, ${year}`));
+  // "Jun 1-19" or "May 11-29" (same-month range — use END day)
+  const mSameMonth = str.match(/([A-Za-z]+)\s+\d+\s*[-–]\s*(\d+)/);
+  if(mSameMonth) return finalize(new Date(`${mSameMonth[1]} ${mSameMonth[2]}, ${year}`));
+  // "Apr" or "June" (month only — use last day of month)
+  const mMonth = str.match(/^([A-Za-z]+)$/);
+  if(mMonth){
+    const d = new Date(`${mMonth[1]} 1, ${year}`);
+    if(!isNaN(d)){
+      d.setMonth(d.getMonth()+1); d.setDate(0); // last day of that month
+      return finalize(d);
+    }
+  }
+  // "Jan 15" plain (no "by")
+  const mPlain = str.match(/([A-Za-z]+)\s+(\d+)/);
+  if(mPlain) return finalize(new Date(`${mPlain[1]} ${mPlain[2]}, ${year}`));
+  return null;
 }
 
 // Returns archive-flagged participants: those whose most recent unbooked/missed
@@ -1137,8 +1172,8 @@ function buildCoachAOA(active2026,rawRows){
     r+=2;
   });
 
-  // Coaching Engagement Flag
-  let fr=0;
+  // Coaching Engagement Flag — start at current row pointer (after all cohort tables)
+  let fr=r;
   while(aoa.length<=fr) aoa.push([]); aoa[fr][6]='Coaching Engagement Flag'; fr++;
   while(aoa.length<=fr) aoa.push([]);
   aoa[fr][6]='Name'; aoa[fr][7]='Cohort'; aoa[fr][8]='Session'; aoa[fr][9]='Action'; aoa[fr][10]='Note';
