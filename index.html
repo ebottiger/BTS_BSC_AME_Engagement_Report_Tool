@@ -659,7 +659,7 @@ function handleXLSX(event){
 // ── Cohort config ──────────────────────────────────────────────────────────────
 const defaultDeadlines={}; // AME cohorts — deadlines loaded from template
 function buildCohortConfig(){
-  const cohorts=Object.keys(parsedCohorts).filter(c=>c.toLowerCase().includes('ame')).sort((a,b)=>{const na=parseInt(a.match(/Cohort\s*(\d+)/i)?.[1]||0),nb=parseInt(b.match(/Cohort\s*(\d+)/i)?.[1]||0);return na-nb;});
+  const cohorts=Object.keys(parsedCohorts).filter(c=>c.toLowerCase().includes('ame')).sort((a,b)=>{const ya=parseInt(a.match(/(\d{4})/)?.[1]||9999),yb=parseInt(b.match(/(\d{4})/)?.[1]||9999),na=parseInt(a.match(/Cohort\s*(\d+)/i)?.[1]||0),nb=parseInt(b.match(/Cohort\s*(\d+)/i)?.[1]||0);return ya!==yb?ya-yb:na-nb;});
   const container=document.getElementById('cohortConfig');container.innerHTML='';
   const hdr=document.createElement('div');hdr.className='cohort-row header-row';
   hdr.innerHTML='<div>Cohort</div><div>S1 Coach</div><div>Pod 1</div><div>S2 Coach</div><div>Pod 2</div><div>S3 Coach</div><div>S4 Coach</div>';
@@ -688,7 +688,7 @@ function generatePreview(){
     <div class="summary-card"><div class="number">${rows2026.filter(r=>r['Session 1 Status']==='Unbooked').length}</div><div class="label">Coach 1 Unbooked</div></div>`;
 
   const container=document.getElementById('cohortPreviews');container.innerHTML='';
-  Object.keys(parsedCohorts).filter(c=>c.toLowerCase().includes('ame')).sort((a,b)=>{const na=parseInt(a.match(/Cohort\s*(\d+)/i)?.[1]||0),nb=parseInt(b.match(/Cohort\s*(\d+)/i)?.[1]||0);return na-nb;}).forEach(cohort=>{
+  Object.keys(parsedCohorts).filter(c=>c.toLowerCase().includes('ame')).sort((a,b)=>{const ya=parseInt(a.match(/(\d{4})/)?.[1]||9999),yb=parseInt(b.match(/(\d{4})/)?.[1]||9999),na=parseInt(a.match(/Cohort\s*(\d+)/i)?.[1]||0),nb=parseInt(b.match(/Cohort\s*(\d+)/i)?.[1]||0);return ya!==yb?ya-yb:na-nb;}).forEach(cohort=>{
     const rows=parsedCohorts[cohort],stats=computeStats(rows);
     const div=document.createElement('div');div.className='cohort-preview';
     div.innerHTML=`<div class="cohort-preview-header"><span>${cohort}</span><span class="badge">${rows.length} participants</span></div>
@@ -748,7 +748,7 @@ function computeFlags(cohorts,reportDate){
           const startDate=parseDate(row['Start Date']);
           const daysSinceStart=startDate?daysDiff(reportDate,startDate):999;
           const note=daysSinceStart<21?'BTS to send Reminder':'BSC to send Reminder';
-          flags.push({name:cleanName(row['Coachee']),cohort:cohortNum,session:S_LABEL[0],sessionIdx:0,note,note2:''});
+          const cohortYear1=parseInt(cohort.match(/(\d{4})/)?.[1]||9999);flags.push({name:cleanName(row['Coachee']),cohort:cohortNum,cohortYear:cohortYear1,session:S_LABEL[0],sessionIdx:0,note,note2:''});
         }
         return;
       }
@@ -768,7 +768,7 @@ function computeFlags(cohorts,reportDate){
               const daysSinceLastSession=dates[i]?daysDiff(reportDate,dates[i]):999;
               note=daysSinceLastSession<14?'BTS to send Reminder':'BSC to send Reminder';
             }
-            flags.push({name:cleanName(row['Coachee']),cohort:cohortNum,session:S_LABEL[i+1],sessionIdx:i+1,note,note2:''});
+            const cohortYearN=parseInt(cohort.match(/(\d{4})/)?.[1]||9999);flags.push({name:cleanName(row['Coachee']),cohort:cohortNum,cohortYear:cohortYearN,session:S_LABEL[i+1],sessionIdx:i+1,note,note2:''});
           }
           break;
         }
@@ -786,6 +786,13 @@ function computeFlags(cohorts,reportDate){
     const match=cohortRows.find(r=>cleanName(r['Coachee'])===f.name);
     const email=(match?match['Coachee Email']||'':'').toLowerCase().trim();
     if(email&&nominateEmails.has(email)) f.note2='Needs to Nominate';
+  });
+  // Sort flags: year ASC → cohort number ASC → session index ASC
+  flags.sort((a,b)=>{
+    if(a.cohortYear!==b.cohortYear) return a.cohortYear-b.cohortYear;
+    const na=parseInt(a.cohort||0),nb=parseInt(b.cohort||0);
+    if(na!==nb) return na-nb;
+    return a.sessionIdx-b.sessionIdx;
   });
   return flags;
 }
@@ -915,7 +922,7 @@ function render360Preview(){
   }
 
   // Sort by cohort number
-  active.sort((a,b)=>parseInt(a.cohortNum)-parseInt(b.cohortNum));
+  active.sort((a,b)=>{const ya=parseInt((a.cohortLabel||'').match(/(\\d{4})/)?.[1]||9999),yb=parseInt((b.cohortLabel||'').match(/(\\d{4})/)?.[1]||9999);const na=parseInt(a.cohortNum||0),nb=parseInt(b.cohortNum||0);return ya!==yb?ya-yb:na-nb;});
 
   // ── Side-by-side summary table ──
   const fields=[
@@ -992,7 +999,7 @@ async function generateReport(){
     const reportDateFmt=rd.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     const active2026=Object.keys(parsedCohorts)
       .filter(c=>c.toLowerCase().includes('ame'))
-      .sort((a,b)=>{const na=parseInt(a.match(/Cohort\s*(\d+)/i)?.[1]||0),nb=parseInt(b.match(/Cohort\s*(\d+)/i)?.[1]||0);return na-nb;});
+      .sort((a,b)=>{const ya=parseInt(a.match(/(\d{4})/)?.[1]||9999),yb=parseInt(b.match(/(\d{4})/)?.[1]||9999),na=parseInt(a.match(/Cohort\s*(\d+)/i)?.[1]||0),nb=parseInt(b.match(/Cohort\s*(\d+)/i)?.[1]||0);return ya!==yb?ya-yb:na-nb;});
     const order={}; active2026.forEach((c,i)=>order[c]=i);
     const allRows=Object.values(parsedCohorts).flat()
       .sort((a,b)=>(order[a.Cohort]??99)-(order[b.Cohort]??99));
@@ -1091,13 +1098,12 @@ async function generateReport(){
 
     // ── Merge cells for section headers ─────────────────────────────────────
     const coachFlagMerge=`I${coachResult.coachFlagMergeRow}:M${coachResult.coachFlagMergeRow}`;
-    const t360FlagMerge=`I${coachResult.t360FlagMergeRow}:L${coachResult.t360FlagMergeRow}`;
 
     // Write the three rebuilt sheets
     tmplZip.file('xl/worksheets/sheet1.xml', aoaToWorksheetXml(coachResult.aoa, {
       colWidths: coachColWidths,
       yellowRows: coachResult.archiveRowNums,
-      mergeCells: [coachFlagMerge, t360FlagMerge]
+      mergeCells: [coachFlagMerge]
     }));
     tmplZip.file('xl/worksheets/sheet2.xml', aoaToWorksheetXml(rawAOA));
     tmplZip.file('xl/worksheets/sheet3.xml', aoaToWorksheetXml(t360Result.aoa));
@@ -1293,36 +1299,12 @@ function buildCoachAOA(active2026,rawRows){
     if(archiveFlagNames.has(f.name)) archiveRowNums.push(row+1); // 1-indexed for Excel
   });
   tables.push({sheetName:'Coaching Overview',name:nextTid(),
-    ref:`I${flagStart+1}:M${flagStart+flagRows.length+1}`,
+    ref:`I${coachFlagHdrRow+1}:M${flagStart+flagRows.length}`,
     cols:['Name','Cohort','Session','Action','Note']});
-
-  // 360 Engagement Flag — cols I-L (indices 8-11), below coaching flags
-  const t360FlagHeaderRow=flagStart+flagRows.length+2;
-  while(aoa.length<=t360FlagHeaderRow) aoa.push([]);
-  aoa[t360FlagHeaderRow][FLAG_COL]='360 Engagement Flag';
-  const t360FlagHdrRow=t360FlagHeaderRow+1;
-  while(aoa.length<=t360FlagHdrRow) aoa.push([]);
-  aoa[t360FlagHdrRow][FLAG_COL]='Engagement Flag';
-  aoa[t360FlagHdrRow][FLAG_COL+1]='Cohort';
-  aoa[t360FlagHdrRow][FLAG_COL+2]='Response';
-  aoa[t360FlagHdrRow][FLAG_COL+3]='Notes';
-  const t360Start=t360FlagHdrRow+1;
-  const t360Rows=flag360Data.length>0?flag360Data:[{name:'',cohort:'',response:''}];
-  t360Rows.forEach((f,i)=>{
-    const row=t360Start+i;
-    while(aoa.length<=row) aoa.push([]);
-    aoa[row][FLAG_COL]=f.name;
-    aoa[row][FLAG_COL+1]=parseInt(f.cohort||0);
-    aoa[row][FLAG_COL+2]=f.response;
-  });
-  tables.push({sheetName:'Coaching Overview',name:nextTid(),
-    ref:`I${t360Start+1}:L${t360Start+t360Rows.length+1}`,
-    cols:['Engagement Flag','Cohort','Response','Notes']});
 
   // Return extra metadata for Excel formatting
   const coachFlagMergeRow=coachFlagHeaderRow+1; // 1-indexed row for merge
-  const t360FlagMergeRow=t360FlagHeaderRow+1;
-  return{aoa,tables,archiveRowNums,coachFlagMergeRow,t360FlagMergeRow};
+  return{aoa,tables,archiveRowNums,coachFlagMergeRow};
 }
 
 // ── 360 Progress AOA + table definitions ─────────────────────────────────────
@@ -1330,15 +1312,19 @@ function build360AOA(reportDateFmt){
   const aoa=[], tables=[];
   let r=0;
   const tid=[200]; function nextTid(){tid[0]++;return `AMETbl${tid[0]}`;}
-  const active=haloData.filter(Boolean).sort((a,b)=>parseInt(a.cohortNum)-parseInt(b.cohortNum));
+  const active=haloData.filter(Boolean).sort((a,b)=>{const ya=parseInt((a.cohortLabel||'').match(/(\\d{4})/)?.[1]||9999),yb=parseInt((b.cohortLabel||'').match(/(\\d{4})/)?.[1]||9999);const na=parseInt(a.cohortNum||0),nb=parseInt(b.cohortNum||0);return ya!==yb?ya-yb:na-nb;});
 
-  aoa[r]=['360 Assessment Progress Dashboard — AME 2026']; r++;
+  aoa[r]=['360 Survey Progress Dashboard — AME 2026']; r++;
   aoa[r]=[`Report Date: ${reportDateFmt}`]; r+=2;
 
   if(!active.length) return{aoa,tables};
 
-  const enriched=active.map(h=>({...h,allParticipants:[...h.participants,...getMissingFromHalo(h.cohortLabel,h.participants)]}));
+  const enriched=active.map(h=>({
+    ...h,
+    allParticipants:[...h.participants,...getMissingFromHalo(h.cohortLabel,h.participants)]
+  }));
 
+  // ── Section 1: Summary table ─────────────────────────────────────
   aoa[r]=['SUMMARY']; r++;
   const sumHdr=r;
   aoa[r]=['Metric',...enriched.map(h=>h.cohortLabel)]; r++;
@@ -1352,23 +1338,43 @@ function build360AOA(reportDateFmt){
     ['Response Min Not Met',  ps=>ps.filter(p=>!p.minMet).length],
     ['Report Released',       ps=>ps.filter(p=>p.reportReleased).length],
   ];
-  fields.forEach(([l,fn])=>{aoa[r]=[l,...enriched.map(h=>fn(h.allParticipants))]; r++;});
-  tables.push({sheetName:'360 progress',name:nextTid(),ref:`A${sumHdr+1}:${colLetter(enriched.length+1)}${r}`,cols:['Metric',...enriched.map(h=>h.cohortLabel)]});
+  fields.forEach(([l,fn])=>{
+    aoa[r]=[l,...enriched.map(h=>fn(h.allParticipants))]; r++;
+  });
+  tables.push({sheetName:'360 progress',name:nextTid(),
+    ref:`A${sumHdr+1}:${colLetter(enriched.length+1)}${r}`,
+    cols:['Metric',...enriched.map(h=>h.cohortLabel)]});
   r+=2;
 
+  // ── Section 2: Per-cohort raw survey data (ALL participants) ─────
   enriched.forEach(h=>{
-    const flagged=h.allParticipants.filter(p=>!p.hasNominated||!p.selfDone);
-    if(!flagged.length) return;
-    aoa[r]=[`${h.cohortLabel} — Participant Detail (Action Required)`]; r++;
+    aoa[r]=[`${h.cohortLabel} — Survey Data`]; r++;
     const detHdr=r;
-    aoa[r]=['Name','Email','Self ✓','Manager ✓','Raters Invited','% Complete','Min Met','Report Released','Action Required']; r++;
-    flagged.forEach(p=>{
+    aoa[r]=['Name','Email','Survey Status','Self Complete','Manager Complete',
+            'Raters Invited','Raters Completed','% Complete','Min Met','Report Released','Action Required']; r++;
+    h.allParticipants.forEach(p=>{
       const acts=[];
       if(!p.hasNominated) acts.push(p.missingFromHalo?'Needs to Nominate (not in Halo)':'Needs to Nominate');
       else if(!p.selfDone) acts.push('Self Assessment Needed');
-      aoa[r]=[p.fullName,p.email,p.selfDone?'YES':'NO',p.managerDone?'YES':'NO',p.ratersInvited,p.ratersPct,p.minMet?'YES':'NO',p.reportReleased?'YES':'NO',acts.join(', ')]; r++;
+      else if(!p.minMet)   acts.push('Response Min Not Met');
+      else if(!p.reportReleased) acts.push('Report Not Released');
+      aoa[r]=[
+        p.fullName, p.email,
+        p.status||'',
+        p.selfDone?'YES':'NO',
+        p.managerDone?'YES':'NO',
+        p.ratersInvited||0,
+        p.ratersCompleted||0,
+        p.ratersPct||'0%',
+        p.minMet?'YES':'NO',
+        p.reportReleased?'YES':'NO',
+        acts.join(', ')||'On Track'
+      ]; r++;
     });
-    tables.push({sheetName:'360 progress',name:nextTid(),ref:`A${detHdr+1}:I${r}`,cols:['Name','Email','Self ✓','Manager ✓','Raters Invited','% Complete','Min Met','Report Released','Action Required']});
+    tables.push({sheetName:'360 progress',name:nextTid(),
+      ref:`A${detHdr+1}:K${r}`,
+      cols:['Name','Email','Survey Status','Self Complete','Manager Complete',
+            'Raters Invited','Raters Completed','% Complete','Min Met','Report Released','Action Required']});
     r+=2;
   });
   return{aoa,tables};
